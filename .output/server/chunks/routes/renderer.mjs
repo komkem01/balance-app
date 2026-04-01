@@ -76,7 +76,7 @@ function createHead(options = {}) {
 const NUXT_PAYLOAD_INLINE = false;
 const NUXT_RUNTIME_PAYLOAD_EXTRACTION = false;
 
-const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"}],"link":[],"style":[],"script":[],"noscript":[]};
+const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"},{"name":"application-name","content":"Balance Archive"}],"link":[{"rel":"icon","type":"image/svg+xml","href":"/favicon.svg"},{"rel":"shortcut icon","href":"/favicon.svg"}],"style":[],"script":[],"noscript":[],"title":"Balance Archive"};
 
 const appRootTag = "div";
 

@@ -2349,7 +2349,7 @@ const _7wgw85wgalFuRnc6iVDhmFVXOu1I1eu4655d6nSIw4 = (function(nitro) {
 
 const rootDir = "/Users/komkemkhamket/Documents/balance-app/balance-app";
 
-const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"}],"link":[],"style":[],"script":[],"noscript":[]};
+const appHead = {"meta":[{"name":"viewport","content":"width=device-width, initial-scale=1"},{"charset":"utf-8"},{"name":"application-name","content":"Balance Archive"}],"link":[{"rel":"icon","type":"image/svg+xml","href":"/favicon.svg"},{"rel":"shortcut icon","href":"/favicon.svg"}],"style":[],"script":[],"noscript":[],"title":"Balance Archive"};
 
 const appRootTag = "div";
 
@@ -2464,22 +2464,7 @@ _n9VT3N4nWYZBy8wTJtShHQMamZsxy_k0jwR2_BiNch4,
 _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw
 ];
 
-const assets = {
-  "/index.mjs": {
-    "type": "text/javascript; charset=utf-8",
-    "etag": "\"1d354-NAT903lnvo62QCDrJtBLpd8Ea0Y\"",
-    "mtime": "2026-04-01T15:30:39.208Z",
-    "size": 119636,
-    "path": "index.mjs"
-  },
-  "/index.mjs.map": {
-    "type": "application/json",
-    "etag": "\"6f3b9-XV/gMkvfEhqQ39x9Mn71uMT0b9g\"",
-    "mtime": "2026-04-01T15:30:39.208Z",
-    "size": 455609,
-    "path": "index.mjs.map"
-  }
-};
+const assets = {};
 
 function readAsset (id) {
   const serverDir = dirname$1(fileURLToPath(globalThis._importMeta_.url));
