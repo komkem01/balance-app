@@ -1,0 +1,1 @@
+export { default } from "file:///Users/komkemkhamket/Documents/balance-app/balance-app/node_modules/@nuxt/vite-builder/dist/vite-node-entry.mjs"
