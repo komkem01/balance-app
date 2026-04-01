@@ -65,6 +65,7 @@ const sectionByRouteKey: Record<SidebarRouteKey, SidebarSectionKey> = {
 export const useSidebarNavigation = (options: UseSidebarNavigationOptions = {}) => {
   const route = useRoute();
   const router = useRouter();
+  const logoutConfirmOpen = ref(false);
 
   const singleOpen = options.singleOpen ?? true;
 
@@ -126,11 +127,45 @@ export const useSidebarNavigation = (options: UseSidebarNavigationOptions = {}) 
     router.push(target);
   };
 
+  const confirmLogout = () => {
+    logoutConfirmOpen.value = false;
+
+    if (typeof window !== "undefined") {
+      // Clear storage-backed auth/session state.
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+
+      // Clear all cookies for current domain.
+      document.cookie.split(";").forEach((cookiePart) => {
+        const [rawName] = cookiePart.split("=");
+        const name = rawName?.trim();
+        if (!name) {
+          return;
+        }
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      });
+
+      window.location.href = "/";
+    }
+  };
+
+  const cancelLogout = () => {
+    logoutConfirmOpen.value = false;
+  };
+
+  const logout = () => {
+    logoutConfirmOpen.value = true;
+  };
+
   return {
     currentPath,
     sections,
     toggleSection,
     goTo,
+    logout,
+    logoutConfirmOpen,
+    confirmLogout,
+    cancelLogout,
     mobileMaxWidth,
   };
 };

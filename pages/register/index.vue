@@ -26,30 +26,29 @@
               <!-- Gender -->
               <div class="space-y-2">
                 <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Gender</label>
-                <select 
+                <AppDropdown
                   v-model="form.gender_id"
-                  class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm appearance-none"
-                  required
-                >
-                  <option value="" disabled>Select Gender</option>
-                  <option v-for="g in genders" :key="g.id" :value="g.id">{{ g.name }}</option>
-                </select>
+                  label="Select Gender"
+                  :items="genderDropdownItems"
+                  unstyled
+                  trigger-class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm flex items-center justify-between"
+                  menu-class="w-full"
+                />
               </div>
 
               <!-- Prefix -->
               <div class="space-y-2">
                 <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Prefix</label>
-                <select 
+                <AppDropdown
                   v-model="form.prefix_id"
+                  :label="!form.gender_id ? 'Select Gender first' : (filteredPrefixes.length ? 'Select Prefix' : 'No prefix available')"
+                  :items="prefixDropdownItems"
                   :disabled="!form.gender_id || filteredPrefixes.length === 0"
-                  class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm appearance-none disabled:cursor-not-allowed disabled:bg-slate-100/70 disabled:text-slate-400"
-                  required
-                >
-                  <option value="" disabled>
-                    {{ !form.gender_id ? 'Select Gender first' : (filteredPrefixes.length ? 'Select Prefix' : 'No prefix available') }}
-                  </option>
-                  <option v-for="p in filteredPrefixes" :key="p.id" :value="p.id">{{ p.name }}</option>
-                </select>
+                  unstyled
+                  trigger-class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm flex items-center justify-between disabled:cursor-not-allowed disabled:bg-slate-100/70 disabled:text-slate-400"
+                  menu-class="w-full"
+                  :close-on-select="true"
+                />
               </div>
 
               <!-- First Name -->
@@ -247,6 +246,14 @@ const filteredPrefixes = computed(() => {
 
   return prefixes.filter((prefix) => prefix.gender_ids.includes(form.gender_id))
 })
+
+const genderDropdownItems = computed(() =>
+  genders.map((g) => ({ label: g.name, value: g.id }))
+)
+
+const prefixDropdownItems = computed(() =>
+  filteredPrefixes.value.map((p) => ({ label: p.name, value: p.id }))
+)
 
 const form = reactive({
   prefix_id: '',

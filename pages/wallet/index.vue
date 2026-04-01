@@ -192,11 +192,17 @@
       </nav>
 
       <!-- Footer User Info -->
-      <div class="p-8 border-t border-slate-50">
-        <p class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">
+      <div class="border-t border-slate-100 bg-slate-900 px-6 py-5 text-white">
+        <p class="text-[9px] uppercase tracking-[0.2em] text-slate-300 mb-1">
           Authenticated as
         </p>
-        <p class="text-xs font-semibold text-slate-900">Johnathan Doe</p>
+        <p class="text-sm font-semibold tracking-tight">Johnathan Doe</p>
+        <button
+          @click="logout"
+          class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition"
+        >
+          Logout
+        </button>
       </div>
     </aside>
 
@@ -492,13 +498,14 @@
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
                     >Currency Code</label
                   >
-                  <select
+                  <AppDropdown
                     v-model="newWallet.currency"
-                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm appearance-none"
-                  >
-                    <option value="THB">THB - Thai Baht</option>
-                    <option value="USD">USD - US Dollar</option>
-                  </select>
+                    label="Select Currency"
+                    :items="currencyDropdownItems"
+                    unstyled
+                    trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                    menu-class="w-full"
+                  />
                 </div>
                 <button
                   type="submit"
@@ -903,6 +910,17 @@
         </div>
       </div>
     </main>
+
+    <AppConfirmModal
+      :open="logoutConfirmOpen"
+      title="Confirm Logout"
+      description="Are you sure you want to log out from this session?"
+      confirm-label="Logout"
+      cancel-label="Cancel"
+      @update:open="cancelLogout"
+      @confirm="confirmLogout"
+      @cancel="cancelLogout"
+    />
   </div>
 </template>
 
@@ -911,7 +929,7 @@ import { ref, reactive, computed } from "vue";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 const mobileSidebarOpen = ref(false);
-const { currentPath, sections, toggleSection, goTo } = useSidebarNavigation({
+const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout } = useSidebarNavigation({
   mobileMaxWidth: 1024,
   onCloseSidebar: () => {
     mobileSidebarOpen.value = false;
@@ -934,6 +952,11 @@ const newWallet = reactive({
 const totalNetWorth = computed(() => {
   return wallets.value.reduce((acc, curr) => acc + curr.balance, 0);
 });
+
+const currencyDropdownItems = [
+  { label: "THB - Thai Baht", value: "THB" },
+  { label: "USD - US Dollar", value: "USD" },
+];
 
 const addWallet = () => {
   if (!newWallet.name) return;

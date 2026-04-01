@@ -589,47 +589,47 @@ const _routes = [
   {
     name: "account-profile",
     path: "/account-profile",
-    component: () => import('./index-B1y0CWkn.mjs')
+    component: () => import('./index-CR9VCZfE.mjs')
   },
   {
     name: "budget",
     path: "/budget",
-    component: () => import('./index-DhRkkD1l.mjs')
+    component: () => import('./index-DLBTxvbA.mjs')
   },
   {
     name: "categories",
     path: "/categories",
-    component: () => import('./index-CJfaooMp.mjs')
+    component: () => import('./index-kFvkq3NS.mjs')
   },
   {
     name: "dashboard",
     path: "/dashboard",
-    component: () => import('./index-CzQwZelv.mjs')
+    component: () => import('./index-1h9LIs4x.mjs')
   },
   {
     name: "new-entry",
     path: "/new-entry",
-    component: () => import('./index-BMs7zpTv.mjs')
+    component: () => import('./index-DeAx0cm6.mjs')
   },
   {
     name: "register",
     path: "/register",
-    component: () => import('./index-DdJS5wZt.mjs')
+    component: () => import('./index-C9q21L84.mjs')
   },
   {
     name: "setting",
     path: "/setting",
-    component: () => import('./index-Da7-JLMx.mjs')
+    component: () => import('./index-jp98tDfq.mjs')
   },
   {
     name: "transaction-ledger",
     path: "/transaction-ledger",
-    component: () => import('./index-Cmu29q5G.mjs')
+    component: () => import('./index-FSL6qERV.mjs')
   },
   {
     name: "wallet",
     path: "/wallet",
-    component: () => import('./index-wsLWIacK.mjs')
+    component: () => import('./index-DAzws0Lk.mjs')
   },
   {
     name: "index",

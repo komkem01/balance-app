@@ -257,13 +257,23 @@
       </nav>
 
       <!-- Footer User Info -->
-      <div :class="['px-6 py-6 border-t border-slate-50', sidebarCollapsed ? 'px-3' : '']">
-        <p v-if="!sidebarCollapsed" class="text-[10px] text-slate-400 uppercase tracking-widest mb-1">
+      <div :class="['border-t border-slate-100 bg-slate-900 text-white px-6 py-5', sidebarCollapsed ? 'px-3' : '']">
+        <p v-if="!sidebarCollapsed" class="text-[9px] uppercase tracking-[0.2em] text-slate-300 mb-1">
           Authenticated as
         </p>
-        <p class="text-xs font-semibold text-slate-900" :class="sidebarCollapsed ? 'text-center' : ''">
+        <p class="text-sm font-semibold tracking-tight" :class="sidebarCollapsed ? 'text-center' : ''">
           {{ sidebarCollapsed ? 'JD' : 'Johnathan Doe' }}
         </p>
+        <button
+          @click="logout"
+          :class="[
+            'mt-4 inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition',
+            sidebarCollapsed ? 'w-full px-0 py-2' : 'w-full px-4 py-2'
+          ]"
+        >
+          <span :class="sidebarCollapsed ? 'hidden' : ''">Logout</span>
+          <span v-if="sidebarCollapsed">↪</span>
+        </button>
       </div>
     </aside>
 
@@ -539,6 +549,17 @@
         </div>
       </div>
     </main>
+
+    <AppConfirmModal
+      :open="logoutConfirmOpen"
+      title="Confirm Logout"
+      description="Are you sure you want to log out from this session?"
+      confirm-label="Logout"
+      cancel-label="Cancel"
+      @update:open="cancelLogout"
+      @confirm="confirmLogout"
+      @cancel="cancelLogout"
+    />
   </div>
 </template>
 
@@ -551,7 +572,7 @@ const mobileSidebarOpen = ref(false);
 const isDesktop = ref(false);
 const DESKTOP_MIN_WIDTH = 1025;
 
-const { currentPath, sections, toggleSection, goTo } = useSidebarNavigation({
+const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout } = useSidebarNavigation({
   initialSections: {
     overview: true,
     management: false,
