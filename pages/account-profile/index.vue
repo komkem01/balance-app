@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-x-hidden"
+    class="h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-hidden"
   >
     <!-- Mesh Background Layer -->
     <div class="absolute inset-0 z-0 pointer-events-none">
@@ -18,7 +18,7 @@
     <!-- Sidebar Section -->
     <aside
       :class="[
-        'w-72 bg-white/70 backdrop-blur-xl border-r border-slate-100 flex flex-col z-20 relative transition-all duration-300 ease-out',
+        'w-72 h-screen shrink-0 bg-white/70 backdrop-blur-xl border-r border-slate-100 flex flex-col z-20 relative transition-all duration-300 ease-out',
         'max-[1024px]:fixed max-[1024px]:inset-y-0 max-[1024px]:left-0 max-[1024px]:z-30 min-[1025px]:translate-x-0',
         mobileSidebarOpen ? 'max-[1024px]:translate-x-0' : 'max-[1024px]:-translate-x-full'
       ]"
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Navigation Accordion -->
-      <nav class="flex-1 px-6 space-y-2 overflow-y-auto">
+      <nav class="flex-1 px-6 space-y-2 overflow-hidden">
         <!-- Section: Overview -->
         <div class="space-y-1">
           <button
@@ -209,7 +209,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="relative z-10 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
+    <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -1325,9 +1325,10 @@
                 </div>
                 <button
                   @click="confirmChangePassword"
-                  class="mt-10 px-8 py-4 border border-slate-900 text-slate-900 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
+                  :disabled="passwordChanging"
+                  class="mt-10 px-8 py-4 border border-slate-900 text-slate-900 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Change Password
+                  {{ passwordChanging ? "Changing Password..." : "Change Password" }}
                 </button>
               </div>
             </div>
@@ -1373,9 +1374,11 @@
                   </div>
                   <div class="pt-6 border-t border-white/10">
                     <button
+                      @click="confirmDeactivateArchive"
+                      :disabled="accountDeactivating"
                       class="text-[10px] font-bold text-rose-400 uppercase tracking-widest hover:text-rose-300 transition-colors"
                     >
-                      Deactivate Archive
+                      {{ accountDeactivating ? "Deactivating..." : "Deactivate Archive" }}
                     </button>
                   </div>
                 </div>
@@ -1447,7 +1450,9 @@
               Cancel
             </button>
             <button
-              class="rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-slate-800"
+              :class="confirmIsDanger
+                ? 'rounded-xl bg-rose-600 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-rose-700'
+                : 'rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-slate-800'"
               @click="handleConfirmAction"
             >
               {{ confirmActionLabel }}
@@ -1501,12 +1506,15 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
   },
 });
 const loading = ref(false);
+const passwordChanging = ref(false);
+const accountDeactivating = ref(false);
 const message = ref("");
 const authApi = useAuthApi();
 const confirmModalOpen = ref(false);
 const confirmTitle = ref("Confirm Action");
 const confirmDescription = ref("");
 const confirmActionLabel = ref("Confirm");
+const confirmIsDanger = ref(false);
 let pendingConfirmAction: null | (() => void | Promise<void>) = null;
 const meData = ref<MeData | null>(null);
 
@@ -1515,16 +1523,19 @@ const openConfirmModal = (
   description: string,
   actionLabel: string,
   action: () => void | Promise<void>,
+  options?: { isDanger?: boolean },
 ) => {
   confirmTitle.value = title;
   confirmDescription.value = description;
   confirmActionLabel.value = actionLabel;
+  confirmIsDanger.value = options?.isDanger || false;
   pendingConfirmAction = action;
   confirmModalOpen.value = true;
 };
 
 const closeConfirmModal = () => {
   confirmModalOpen.value = false;
+  confirmIsDanger.value = false;
   pendingConfirmAction = null;
 };
 
@@ -1573,13 +1584,13 @@ const formatMonthYear = (value?: string | null) => {
     return "-";
   }
 
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString("en-GB", {
     month: "long",
     year: "numeric",
   });
 };
 
-const formatThaiDateTime = (value?: string | null) => {
+const formatEnglishDateTime = (value?: string | null) => {
   if (!value) {
     return "-";
   }
@@ -1589,17 +1600,20 @@ const formatThaiDateTime = (value?: string | null) => {
     return "-";
   }
 
-  return date
-    .toLocaleString("th-TH", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    })
-    .replace(",", "");
+  const datePart = date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const timePart = date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+
+  return `${datePart} ${timePart}`;
 };
 
 const meSummary = computed(() => {
@@ -1607,8 +1621,8 @@ const meSummary = computed(() => {
   return {
     username: me?.account?.username || "-",
     memberSince: formatMonthYear(me?.created_at),
-    lastLogin: formatThaiDateTime(me?.last_login),
-    updatedAt: formatThaiDateTime(me?.updated_at),
+    lastLogin: formatEnglishDateTime(me?.last_login),
+    updatedAt: formatEnglishDateTime(me?.updated_at),
   };
 });
 
@@ -1989,6 +2003,10 @@ const confirmUpdateProfile = () => {
 };
 
 const confirmChangePassword = () => {
+  if (passwordChanging.value) {
+    return;
+  }
+
   openConfirmModal(
     "Confirm Update",
     "Change account password?",
@@ -2010,6 +2028,7 @@ const confirmChangePassword = () => {
         return;
       }
 
+      passwordChanging.value = true;
       try {
         await authApi.changeMyPassword({
           current_password: passwordForm.currentPassword,
@@ -2023,12 +2042,44 @@ const confirmChangePassword = () => {
         message.value = "Password Changed Successfully";
       } catch (error) {
         message.value = error instanceof Error ? error.message : "member-password-change-failed";
+      } finally {
+        passwordChanging.value = false;
       }
 
       setTimeout(() => {
         message.value = "";
       }, 1800);
     },
+  );
+};
+
+const confirmDeactivateArchive = () => {
+  if (accountDeactivating.value) {
+    return;
+  }
+
+  openConfirmModal(
+    "Danger Zone",
+    "This will permanently delete your account and related data. This action cannot be undone.",
+    "Delete Account",
+    async () => {
+      accountDeactivating.value = true;
+      try {
+        await authApi.deleteMe();
+        authApi.clearSession();
+        if (typeof window !== "undefined") {
+          window.location.href = "/";
+        }
+      } catch (error) {
+        message.value = error instanceof Error ? error.message : "member-delete-failed";
+        setTimeout(() => {
+          message.value = "";
+        }, 2200);
+      } finally {
+        accountDeactivating.value = false;
+      }
+    },
+    { isDanger: true },
   );
 };
 

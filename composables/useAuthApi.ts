@@ -103,6 +103,34 @@ type ChangeMyPasswordRequest = {
   confirm_password: string;
 };
 
+type MeSettingsResponse = {
+  preferred_currency: string;
+  preferred_language: string;
+  notify_budget: boolean;
+  notify_security: boolean;
+  notify_weekly: boolean;
+};
+
+type MeSettingsUpdateRequest = {
+  preferred_currency?: string;
+  preferred_language?: string;
+  notify_budget?: boolean;
+  notify_security?: boolean;
+  notify_weekly?: boolean;
+};
+
+type MeNotificationsUpdateRequest = {
+  notify_budget?: boolean;
+  notify_security?: boolean;
+  notify_weekly?: boolean;
+};
+
+type SystemManifestResponse = {
+  version: string;
+  encrypted_status: string;
+  environment: string;
+};
+
 const ACCESS_TOKEN_KEY = "balance_app_access_token";
 const REFRESH_TOKEN_KEY = "balance_app_refresh_token";
 const TOKEN_TYPE_KEY = "balance_app_token_type";
@@ -380,6 +408,38 @@ export const useAuthApi = () => {
     });
   };
 
+  const deleteMe = async () => {
+    return await requestWithAuth<unknown>("/me", {
+      method: "DELETE",
+    });
+  };
+
+  const getMySettings = async () => {
+    return await requestWithAuth<MeSettingsResponse>("/me/settings", {
+      method: "GET",
+    });
+  };
+
+  const updateMySettings = async (body: MeSettingsUpdateRequest) => {
+    return await requestWithAuth<MeSettingsResponse>("/me/settings", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const updateMyNotificationSettings = async (body: MeNotificationsUpdateRequest) => {
+    return await requestWithAuth<MeSettingsResponse>("/me/settings/notifications", {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const getSystemManifest = async () => {
+    return await request<SystemManifestResponse>("/system/manifest", {
+      method: "GET",
+    });
+  };
+
   return {
     clearSession,
     getAccessToken,
@@ -388,6 +448,11 @@ export const useAuthApi = () => {
     getMe,
     updateMe,
     changeMyPassword,
+    deleteMe,
+    getMySettings,
+    updateMySettings,
+    updateMyNotificationSettings,
+    getSystemManifest,
     loginMember,
     refreshMemberToken,
     registerMember,

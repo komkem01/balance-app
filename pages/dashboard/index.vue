@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-x-hidden"
+    class="h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-hidden"
   >
     <!-- Mesh Background Layer -->
     <div class="absolute inset-0 z-0 pointer-events-none">
@@ -68,7 +68,7 @@
       </div>
 
       <!-- Navigation Accordion -->
-      <nav :class="['flex-1 px-4 space-y-2 overflow-y-auto', sidebarCollapsed ? 'px-2' : '']">
+      <nav :class="['flex-1 px-4 space-y-2 overflow-hidden', sidebarCollapsed ? 'px-2' : '']">
         <!-- Section: Overview -->
         <div class="space-y-1">
           <button
@@ -279,7 +279,7 @@
 
     <!-- Main Content Area -->
     <main
-      class="relative z-10 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300"
+      class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300"
       :style="mainContentStyle"
     >
       <!-- Dynamic Header Based on currentPath -->

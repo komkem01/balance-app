@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-x-hidden"
+    class="h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-hidden"
   >
     <!-- Mesh Background Layer -->
     <div class="absolute inset-0 z-0 pointer-events-none">
@@ -18,7 +18,7 @@
     <!-- Sidebar Section -->
     <aside
       :class="[
-        'w-72 bg-white/70 backdrop-blur-xl border-r border-slate-100 flex flex-col z-20 relative transition-all duration-300 ease-out',
+        'w-72 h-screen shrink-0 bg-white/70 backdrop-blur-xl border-r border-slate-100 flex flex-col z-20 relative transition-all duration-300 ease-out',
         'max-[1024px]:fixed max-[1024px]:inset-y-0 max-[1024px]:left-0 max-[1024px]:z-30 min-[1025px]:translate-x-0',
         mobileSidebarOpen ? 'max-[1024px]:translate-x-0' : 'max-[1024px]:-translate-x-full'
       ]"
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Navigation Accordion -->
-      <nav class="flex-1 px-6 space-y-2 overflow-y-auto">
+      <nav class="flex-1 px-6 space-y-2 overflow-hidden">
         <!-- Section: Overview -->
         <div class="space-y-1">
           <button
@@ -207,7 +207,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="relative z-10 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
+    <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>

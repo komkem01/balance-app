@@ -1,8 +1,0 @@
-const index_vue_vue_type_style_index_0_scoped_ad33858a_lang = ".mesh-gradient[data-v-ad33858a]{background-color:#f8fafc;background-image:radial-gradient(at 0 0,rgba(99,102,241,.08) 0,transparent 50%),radial-gradient(at 100% 0,rgba(139,92,246,.08) 0,transparent 50%),radial-gradient(at 100% 100%,rgba(99,102,241,.08) 0,transparent 50%),radial-gradient(at 0 100%,rgba(139,92,246,.08) 0,transparent 50%)}aside[data-v-ad33858a]::-webkit-scrollbar,main[data-v-ad33858a]::-webkit-scrollbar{display:none}.premium-card[data-v-ad33858a]{transition:all .6s cubic-bezier(.16,1,.3,1)}.animate-in[data-v-ad33858a]{animation:slideIn-ad33858a .8s cubic-bezier(.16,1,.3,1) forwards}@keyframes slideIn-ad33858a{0%{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}.fade-slide-enter-active[data-v-ad33858a],.fade-slide-leave-active[data-v-ad33858a]{transition:all .5s ease}.fade-slide-enter-from[data-v-ad33858a],.fade-slide-leave-to[data-v-ad33858a]{opacity:0;transform:translateY(-8px)}";
-
-const indexStyles_CyUkIBoB = [
-  index_vue_vue_type_style_index_0_scoped_ad33858a_lang
-];
-
-export { indexStyles_CyUkIBoB as default };
-//# sourceMappingURL=index-styles.CyUkIBoB.mjs.map

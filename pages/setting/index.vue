@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-x-hidden"
+    class="h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-hidden"
   >
     <!-- Mesh Background Layer -->
     <div class="absolute inset-0 z-0 pointer-events-none">
@@ -18,7 +18,7 @@
     <!-- Sidebar Section -->
     <aside
       :class="[
-        'w-72 bg-white/70 backdrop-blur-xl border-r border-slate-100 flex flex-col z-20 relative transition-all duration-300 ease-out',
+        'w-72 h-screen shrink-0 bg-white/70 backdrop-blur-xl border-r border-slate-100 flex flex-col z-20 relative transition-all duration-300 ease-out',
         'max-[1024px]:fixed max-[1024px]:inset-y-0 max-[1024px]:left-0 max-[1024px]:z-30 min-[1025px]:translate-x-0',
         mobileSidebarOpen ? 'max-[1024px]:translate-x-0' : 'max-[1024px]:-translate-x-full'
       ]"
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Navigation Accordion -->
-      <nav class="flex-1 px-6 space-y-2 overflow-y-auto">
+      <nav class="flex-1 px-6 space-y-2 overflow-hidden">
         <!-- Section: Overview -->
         <div class="space-y-1">
           <button
@@ -209,7 +209,7 @@
     </aside>
 
     <!-- Main Content Area -->
-    <main class="relative z-10 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
+    <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -1412,6 +1412,13 @@
                     menu-class="w-full"
                   />
                 </div>
+                <button
+                  @click="confirmSaveSettings"
+                  :disabled="settingsSaving || settingsLoading"
+                  class="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {{ settingsSaving ? "Saving..." : "Save Settings" }}
+                </button>
               </div>
             </div>
 
@@ -1443,12 +1450,11 @@
                     </p>
                   </div>
                   <button
-                    @click="
-                      systemSettings.notifications[key] =
-                        !systemSettings.notifications[key]
-                    "
+                    @click="toggleNotification(String(key))"
+                    :disabled="notificationsSaving || settingsLoading"
                     :class="[
                       'w-12 h-6 rounded-full transition-all duration-300 relative',
+                      notificationsSaving || settingsLoading ? 'opacity-60 cursor-not-allowed' : '',
                       systemSettings.notifications[key]
                         ? 'bg-slate-900'
                         : 'bg-slate-100',
@@ -1510,7 +1516,7 @@
                   >
                     Version
                   </p>
-                  <p class="text-xs font-medium tracking-widest">2.4.0-PRO</p>
+                  <p class="text-xs font-medium tracking-widest">{{ systemManifest.version }}</p>
                 </div>
                 <div
                   class="flex justify-between items-end border-b border-white/5 pb-4"
@@ -1521,16 +1527,23 @@
                     Encrypted Status
                   </p>
                   <p
-                    class="text-xs font-medium text-emerald-400 tracking-widest"
+                    class="text-xs font-medium tracking-widest"
+                    :class="
+                      systemManifest.encryptedStatus === 'Production'
+                        ? 'text-emerald-400'
+                        : systemManifest.encryptedStatus === 'Staging'
+                          ? 'text-amber-300'
+                          : 'text-slate-300'
+                    "
                   >
-                    AES-256 SECURE
+                    {{ systemManifest.encryptedStatus }}
                   </p>
                 </div>
                 <div class="pt-2 text-center">
                   <p
                     class="text-[8px] text-slate-500 uppercase tracking-[0.3em]"
                   >
-                    Balance Finance Archive &copy; 2026
+                    Balance Finance Archive &copy; {{ systemManifest.year }}
                   </p>
                 </div>
               </div>
@@ -1624,8 +1637,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
+import { useAuthApi } from "../../composables/useAuthApi";
 
 const mobileSidebarOpen = ref(false);
 const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
@@ -1635,7 +1649,11 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
   },
 });
 const loading = ref(false);
+const settingsLoading = ref(false);
+const settingsSaving = ref(false);
+const notificationsSaving = ref(false);
 const message = ref("");
+const authApi = useAuthApi();
 const confirmModalOpen = ref(false);
 const confirmTitle = ref("Confirm Action");
 const confirmDescription = ref("");
@@ -1688,6 +1706,12 @@ const systemSettings = reactive({
   },
 });
 
+const systemManifest = reactive({
+  version: "-",
+  encryptedStatus: "-",
+  year: new Date().getFullYear(),
+});
+
 // Wallets State & Logic
 const wallets = ref([
   { id: 1, name: "Main Savings", balance: 120000, currency: "THB" },
@@ -1727,6 +1751,119 @@ const systemLanguageDropdownItems = [
   { label: "English (US)", value: "EN" },
   { label: "ไทย (Thai)", value: "TH" },
 ];
+
+const toggleNotification = async (key: string) => {
+  if (notificationsSaving.value || settingsLoading.value) {
+    return;
+  }
+
+  if (key !== "budget" && key !== "security" && key !== "weekly") {
+    return;
+  }
+
+  const previous = systemSettings.notifications[key];
+  const next = !previous;
+  systemSettings.notifications[key] = next;
+
+  notificationsSaving.value = true;
+  try {
+    const payload =
+      key === "budget"
+        ? { notify_budget: next }
+        : key === "security"
+          ? { notify_security: next }
+          : { notify_weekly: next };
+
+    const res = await authApi.updateMyNotificationSettings(payload);
+    const s = res.data;
+    systemSettings.notifications.budget = !!s.notify_budget;
+    systemSettings.notifications.security = !!s.notify_security;
+    systemSettings.notifications.weekly = !!s.notify_weekly;
+  } catch (error) {
+    systemSettings.notifications[key] = previous;
+    message.value = error instanceof Error ? error.message : "member-settings-update-failed";
+    setTimeout(() => {
+      message.value = "";
+    }, 1800);
+  } finally {
+    notificationsSaving.value = false;
+  }
+};
+
+const loadMySettings = async () => {
+  settingsLoading.value = true;
+  try {
+    const res = await authApi.getMySettings();
+    const s = res.data;
+    systemSettings.currency = s.preferred_currency || "THB";
+    systemSettings.language = s.preferred_language || "EN";
+    systemSettings.notifications.budget = !!s.notify_budget;
+    systemSettings.notifications.security = !!s.notify_security;
+    systemSettings.notifications.weekly = !!s.notify_weekly;
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "member-settings-info-failed";
+    setTimeout(() => {
+      message.value = "";
+    }, 2200);
+  } finally {
+    settingsLoading.value = false;
+  }
+};
+
+const loadSystemManifest = async () => {
+  try {
+    const res = await authApi.getSystemManifest();
+    const m = res.data;
+    systemManifest.version = m.version || "-";
+    systemManifest.encryptedStatus = m.encrypted_status || "-";
+  } catch {
+    systemManifest.version = "-";
+    systemManifest.encryptedStatus = "-";
+  }
+};
+
+const confirmSaveSettings = () => {
+  if (settingsSaving.value || settingsLoading.value) {
+    return;
+  }
+
+  openConfirmModal(
+    "Confirm Update",
+    "Save system settings?",
+    "Save",
+    async () => {
+      settingsSaving.value = true;
+      try {
+        const res = await authApi.updateMySettings({
+          preferred_currency: systemSettings.currency,
+          preferred_language: systemSettings.language,
+        });
+
+        const s = res.data;
+        systemSettings.currency = s.preferred_currency || "THB";
+        systemSettings.language = s.preferred_language || "EN";
+        systemSettings.notifications.budget = !!s.notify_budget;
+        systemSettings.notifications.security = !!s.notify_security;
+        systemSettings.notifications.weekly = !!s.notify_weekly;
+
+        message.value = "Settings Saved Successfully";
+      } catch (error) {
+        message.value = error instanceof Error ? error.message : "member-settings-update-failed";
+      } finally {
+        settingsSaving.value = false;
+      }
+
+      setTimeout(() => {
+        message.value = "";
+      }, 1800);
+    },
+  );
+};
+
+onMounted(() => {
+  void loadMySettings();
+  void loadSystemManifest();
+});
 
 const addWallet = () => {
   if (!newWallet.name) return;
