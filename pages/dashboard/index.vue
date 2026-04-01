@@ -262,7 +262,7 @@
           Authenticated as
         </p>
         <p class="text-sm font-semibold tracking-tight" :class="sidebarCollapsed ? 'text-center' : ''">
-          {{ sidebarCollapsed ? 'JD' : 'Johnathan Doe' }}
+          {{ sidebarCollapsed ? userInitials : userDisplayName }}
         </p>
         <button
           @click="logout"
@@ -572,7 +572,7 @@ const mobileSidebarOpen = ref(false);
 const isDesktop = ref(false);
 const DESKTOP_MIN_WIDTH = 1025;
 
-const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout } = useSidebarNavigation({
+const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName, userInitials } = useSidebarNavigation({
   initialSections: {
     overview: true,
     management: false,

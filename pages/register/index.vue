@@ -31,7 +31,7 @@
                   label="Select Gender"
                   :items="genderDropdownItems"
                   unstyled
-                  trigger-class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm flex items-center justify-between"
+                  trigger-class="w-full rounded-2xl border border-slate-300 bg-white px-6 py-4 text-sm text-slate-900 outline-none transition-all focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 flex items-center justify-between"
                   menu-class="w-full"
                 />
               </div>
@@ -45,7 +45,7 @@
                   :items="prefixDropdownItems"
                   :disabled="!form.gender_id || filteredPrefixes.length === 0"
                   unstyled
-                  trigger-class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm flex items-center justify-between disabled:cursor-not-allowed disabled:bg-slate-100/70 disabled:text-slate-400"
+                  trigger-class="w-full rounded-2xl border border-slate-300 bg-white px-6 py-4 text-sm text-slate-900 outline-none transition-all focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 flex items-center justify-between disabled:cursor-not-allowed disabled:bg-slate-100/70 disabled:text-slate-400"
                   menu-class="w-full"
                   :close-on-select="true"
                 />
@@ -218,37 +218,51 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthApi } from '../../composables/useAuthApi'
 
 const loading = ref(false)
 const message = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
+const router = useRouter()
+const authApi = useAuthApi()
 
-// Mock Data (ในระบบจริงจะดึงจาก Database ตามโครงสร้างที่คุณออกแบบ)
-const genders = [
-  { id: 'g1', name: 'Male' },
-  { id: 'g2', name: 'Female' },
-  { id: 'g3', name: 'Non-binary' }
-]
+type GenderItem = {
+  id: string
+  name: string
+  is_active: boolean
+}
 
-const prefixes = [
-  { id: 'p1', name: 'Mr.', gender_ids: ['g1'] },
-  { id: 'p2', name: 'Ms.', gender_ids: ['g2'] },
-  { id: 'p3', name: 'Mrs.', gender_ids: ['g2'] },
-  { id: 'p4', name: 'Mx.', gender_ids: ['g3'] }
-]
+type PrefixItem = {
+  id: string
+  gender_id: string
+  name: string
+  is_active: boolean
+}
+
+const genders = ref<GenderItem[]>([])
+const prefixes = ref<PrefixItem[]>([])
+
+const extractErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return 'Request failed'
+}
 
 const filteredPrefixes = computed(() => {
   if (!form.gender_id) {
     return []
   }
 
-  return prefixes.filter((prefix) => prefix.gender_ids.includes(form.gender_id))
+  return prefixes.value.filter((prefix) => prefix.gender_id === form.gender_id)
 })
 
 const genderDropdownItems = computed(() =>
-  genders.map((g) => ({ label: g.name, value: g.id }))
+  genders.value.map((g) => ({ label: g.name, value: g.id }))
 )
 
 const prefixDropdownItems = computed(() =>
@@ -273,6 +287,23 @@ watch(
   }
 )
 
+onMounted(async () => {
+  try {
+    const [genderRes, prefixRes] = await Promise.all([
+      authApi.listGenders(),
+      authApi.listPrefixes(),
+    ])
+
+    genders.value = genderRes.filter((item) => item.is_active)
+    prefixes.value = prefixRes.filter((item) => item.is_active)
+  } catch (error) {
+    message.value = extractErrorMessage(error)
+    setTimeout(() => {
+      message.value = ''
+    }, 3000)
+  }
+})
+
 const handleRegister = async () => {
   if (form.password !== form.confirm_password) {
     message.value = 'Passwords do not match'
@@ -281,17 +312,31 @@ const handleRegister = async () => {
   }
 
   loading.value = true
-  
-  // Mock API Delay
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  
-  loading.value = false
-  message.value = 'Account Created Successfully'
-  
-  setTimeout(() => {
-    message.value = ''
-    // Navigate to login
-  }, 3000)
+  try {
+    await authApi.registerMember({
+      gender_id: form.gender_id || null,
+      prefix_id: form.prefix_id || null,
+      first_name: form.first_name.trim(),
+      last_name: form.last_name.trim(),
+      display_name: `${form.first_name} ${form.last_name}`.trim(),
+      phone: form.phone.trim(),
+      username: form.username.trim(),
+      password: form.password,
+    })
+
+    message.value = 'Account Created Successfully'
+    setTimeout(() => {
+      message.value = ''
+    }, 3000)
+    await router.push('/')
+  } catch (error) {
+    message.value = extractErrorMessage(error)
+    setTimeout(() => {
+      message.value = ''
+    }, 3000)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

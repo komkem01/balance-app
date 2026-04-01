@@ -1,35 +1,57 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from "vue"
+import { useRouter } from "vue-router"
+import { useAuthApi } from "../composables/useAuthApi"
 
 const REMEMBERED_USERNAME_KEY = "balance_app_remembered_username"
 
+const router = useRouter()
 const loading = ref(false)
 const message = ref("")
 const showPassword = ref(false)
+const authApi = useAuthApi()
 const form = reactive({
   username: "",
   password: "",
   remember: false
 })
 
-async function handleLogin() {
-  loading.value = true
-  await new Promise((resolve) => setTimeout(resolve, 1500))
-  loading.value = false
-
-  if (typeof window !== "undefined") {
-    if (form.remember && form.username.trim()) {
-      localStorage.setItem(REMEMBERED_USERNAME_KEY, form.username.trim())
-    } else {
-      localStorage.removeItem(REMEMBERED_USERNAME_KEY)
-    }
+const extractErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) {
+    return error.message
   }
 
-  message.value = "Security Verified"
+  return "Request failed"
+}
 
-  setTimeout(() => {
-    message.value = ""
-  }, 3000)
+async function handleLogin() {
+  loading.value = true
+  try {
+    await authApi.loginMember({
+      username: form.username.trim(),
+      password: form.password,
+    })
+
+    await authApi.getMe()
+
+    if (typeof window !== "undefined") {
+      if (form.remember && form.username.trim()) {
+        localStorage.setItem(REMEMBERED_USERNAME_KEY, form.username.trim())
+      } else {
+        localStorage.removeItem(REMEMBERED_USERNAME_KEY)
+      }
+    }
+
+    message.value = "Security Verified"
+    await router.push("/dashboard")
+  } catch (error) {
+    message.value = extractErrorMessage(error)
+  } finally {
+    loading.value = false
+    setTimeout(() => {
+      message.value = ""
+    }, 3000)
+  }
 }
 
 onMounted(() => {
@@ -42,6 +64,22 @@ onMounted(() => {
     form.username = rememberedUsername
     form.remember = true
   }
+
+  const tryRefresh = async () => {
+    const refreshToken = authApi.getRefreshToken()
+    if (!refreshToken) {
+      return
+    }
+
+    try {
+      await authApi.refreshMemberToken(refreshToken)
+      await router.push("/dashboard")
+    } catch {
+      authApi.clearSession()
+    }
+  }
+
+  void tryRefresh()
 })
 
 watch(
@@ -176,7 +214,7 @@ watch(
     >
       <div
         v-if="message"
-        class="fixed bottom-10 left-1/2 z-50 -translate-x-1/2 rounded-2xl border border-slate-100 bg-white px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-900 shadow-2xl"
+        class="fixed top-6 right-6 z-50 rounded-2xl border border-slate-100 bg-white px-8 py-4 text-[10px] font-bold uppercase tracking-widest text-slate-900 shadow-2xl"
       >
         {{ message }}
       </div>

@@ -104,6 +104,7 @@ declare global {
   const useAppConfig: typeof import('../../node_modules/nuxt/dist/app/config').useAppConfig
   const useAsyncData: typeof import('../../node_modules/nuxt/dist/app/composables/asyncData').useAsyncData
   const useAttrs: typeof import('../../node_modules/vue').useAttrs
+  const useAuthApi: typeof import('../../composables/useAuthApi').useAuthApi
   const useColorMode: typeof import('../../node_modules/@nuxtjs/color-mode/dist/runtime/composables').useColorMode
   const useContentSearch: typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useContentSearch').useContentSearch
   const useCookie: typeof import('../../node_modules/nuxt/dist/app/composables/cookie').useCookie
@@ -310,6 +311,7 @@ declare module 'vue' {
     readonly useAppConfig: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/config')['useAppConfig']>
     readonly useAsyncData: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/asyncData')['useAsyncData']>
     readonly useAttrs: UnwrapRef<typeof import('../../node_modules/vue')['useAttrs']>
+    readonly useAuthApi: UnwrapRef<typeof import('../../composables/useAuthApi')['useAuthApi']>
     readonly useColorMode: UnwrapRef<typeof import('../../node_modules/@nuxtjs/color-mode/dist/runtime/composables')['useColorMode']>
     readonly useContentSearch: UnwrapRef<typeof import('../../node_modules/@nuxt/ui/dist/runtime/composables/useContentSearch')['useContentSearch']>
     readonly useCookie: UnwrapRef<typeof import('../../node_modules/nuxt/dist/app/composables/cookie')['useCookie']>

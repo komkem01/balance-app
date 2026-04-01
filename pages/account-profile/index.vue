@@ -197,7 +197,7 @@
           Authenticated as
         </p>
         <p class="text-sm font-semibold tracking-tight">
-          {{ userProfile.displayName }}
+          {{ userDisplayName }}
         </p>
         <button
           @click="logout"
@@ -1291,6 +1291,7 @@
                     >
                     <input
                       type="password"
+                      v-model="passwordForm.currentPassword"
                       placeholder="••••••••"
                       class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
                     />
@@ -1303,6 +1304,7 @@
                       >
                       <input
                         type="password"
+                        v-model="passwordForm.newPassword"
                         placeholder="••••••••"
                         class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
                       />
@@ -1314,6 +1316,7 @@
                       >
                       <input
                         type="password"
+                        v-model="passwordForm.confirmPassword"
                         placeholder="••••••••"
                         class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
                       />
@@ -1321,6 +1324,7 @@
                   </div>
                 </div>
                 <button
+                  @click="confirmChangePassword"
                   class="mt-10 px-8 py-4 border border-slate-900 text-slate-900 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
                 >
                   Change Password
@@ -1345,7 +1349,7 @@
                     >
                       Username
                     </p>
-                    <p class="text-base font-medium">john_doe_archive</p>
+                    <p class="text-base font-medium">{{ meSummary.username }}</p>
                   </div>
                   <div>
                     <p
@@ -1353,7 +1357,19 @@
                     >
                       Member Since
                     </p>
-                    <p class="text-base font-medium">October 2023</p>
+                    <p class="text-base font-medium">{{ meSummary.memberSince }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[9px] text-slate-400 uppercase tracking-widest">
+                      Last Login
+                    </p>
+                    <p class="text-sm font-medium">{{ meSummary.lastLogin }}</p>
+                  </div>
+                  <div>
+                    <p class="text-[9px] text-slate-400 uppercase tracking-widest">
+                      Updated At
+                    </p>
+                    <p class="text-sm font-medium">{{ meSummary.updatedAt }}</p>
                   </div>
                   <div class="pt-6 border-t border-white/10">
                     <button
@@ -1454,11 +1470,31 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
+import { useAuthApi } from "../../composables/useAuthApi";
+
+type MeData = {
+  id: string;
+  gender_id: string | null;
+  prefix_id: string | null;
+  first_name: string;
+  last_name: string;
+  display_name: string;
+  phone: string;
+  account: {
+    id: string;
+    username: string;
+    created_at: string;
+    updated_at: string;
+  } | null;
+  created_at: string;
+  updated_at: string;
+  last_login: string | null;
+};
 
 const mobileSidebarOpen = ref(false);
-const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout } = useSidebarNavigation({
+const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
   mobileMaxWidth: 1024,
   onCloseSidebar: () => {
     mobileSidebarOpen.value = false;
@@ -1466,11 +1502,13 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
 });
 const loading = ref(false);
 const message = ref("");
+const authApi = useAuthApi();
 const confirmModalOpen = ref(false);
 const confirmTitle = ref("Confirm Action");
 const confirmDescription = ref("");
 const confirmActionLabel = ref("Confirm");
 let pendingConfirmAction: null | (() => void | Promise<void>) = null;
+const meData = ref<MeData | null>(null);
 
 const openConfirmModal = (
   title: string,
@@ -1499,12 +1537,115 @@ const handleConfirmAction = async () => {
   }
 };
 
+const formatDateTime = (value?: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleString();
+};
+
+const formatDateOnly = (value?: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleDateString();
+};
+
+const formatMonthYear = (value?: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const formatThaiDateTime = (value?: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return date
+    .toLocaleString("th-TH", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+    .replace(",", "");
+};
+
+const meSummary = computed(() => {
+  const me = meData.value;
+  return {
+    username: me?.account?.username || "-",
+    memberSince: formatMonthYear(me?.created_at),
+    lastLogin: formatThaiDateTime(me?.last_login),
+    updatedAt: formatThaiDateTime(me?.updated_at),
+  };
+});
+
 // User Profile State
 const userProfile = reactive({
   firstName: "Johnathan",
   lastName: "Doe",
   displayName: "Johnathan Doe",
   phone: "081-234-5678",
+});
+
+const passwordForm = reactive({
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+});
+
+const loadMeProfile = async () => {
+  try {
+    const res = await authApi.getMe();
+    const me = res.data as MeData;
+    meData.value = me;
+
+    userProfile.firstName = me.first_name || "";
+    userProfile.lastName = me.last_name || "";
+    userProfile.displayName = me.display_name || "";
+    userProfile.phone = me.phone || "";
+  } catch {
+    message.value = "member-me-failed";
+    setTimeout(() => {
+      message.value = "";
+    }, 2000);
+  }
+};
+
+onMounted(() => {
+  void loadMeProfile();
 });
 
 // Wallets State & Logic
@@ -1811,8 +1952,79 @@ const confirmUpdateProfile = () => {
     "Confirm Update",
     "Save profile changes?",
     "Update",
-    () => {
-      message.value = "Profile Updated Successfully";
+    async () => {
+      if (!meData.value?.id) {
+        message.value = "member-me-failed";
+        setTimeout(() => {
+          message.value = "";
+        }, 1800);
+        return;
+      }
+
+      try {
+        const res = await authApi.updateMe(meData.value.id, {
+          first_name: userProfile.firstName,
+          last_name: userProfile.lastName,
+          display_name: userProfile.displayName,
+          phone: userProfile.phone,
+        });
+
+        const updated = res.data as MeData;
+        meData.value = {
+          ...meData.value,
+          ...updated,
+          account: updated.account || meData.value.account,
+        };
+
+        message.value = "Profile Updated Successfully";
+      } catch (error) {
+        message.value = error instanceof Error ? error.message : "member-update-failed";
+      }
+
+      setTimeout(() => {
+        message.value = "";
+      }, 1800);
+    },
+  );
+};
+
+const confirmChangePassword = () => {
+  openConfirmModal(
+    "Confirm Update",
+    "Change account password?",
+    "Update",
+    async () => {
+      if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+        message.value = "member-password-required";
+        setTimeout(() => {
+          message.value = "";
+        }, 1800);
+        return;
+      }
+
+      if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+        message.value = "member-password-confirmation-mismatch";
+        setTimeout(() => {
+          message.value = "";
+        }, 1800);
+        return;
+      }
+
+      try {
+        await authApi.changeMyPassword({
+          current_password: passwordForm.currentPassword,
+          new_password: passwordForm.newPassword,
+          confirm_password: passwordForm.confirmPassword,
+        });
+
+        passwordForm.currentPassword = "";
+        passwordForm.newPassword = "";
+        passwordForm.confirmPassword = "";
+        message.value = "Password Changed Successfully";
+      } catch (error) {
+        message.value = error instanceof Error ? error.message : "member-password-change-failed";
+      }
+
       setTimeout(() => {
         message.value = "";
       }, 1800);

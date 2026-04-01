@@ -1,5 +1,6 @@
-import { onMounted, reactive, ref, watch } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useAuthApi } from "./useAuthApi";
 
 type SidebarSectionKey = "overview" | "management" | "actions" | "system";
 
@@ -65,7 +66,9 @@ const sectionByRouteKey: Record<SidebarRouteKey, SidebarSectionKey> = {
 export const useSidebarNavigation = (options: UseSidebarNavigationOptions = {}) => {
   const route = useRoute();
   const router = useRouter();
+  const authApi = useAuthApi();
   const logoutConfirmOpen = ref(false);
+  const userDisplayName = ref("Member");
 
   const singleOpen = options.singleOpen ?? true;
 
@@ -90,7 +93,48 @@ export const useSidebarNavigation = (options: UseSidebarNavigationOptions = {}) 
     });
   };
 
-  onMounted(syncCurrentPath);
+  const loadCurrentMember = async () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const accessToken = authApi.getAccessToken().trim();
+    if (!accessToken) {
+      return;
+    }
+
+    try {
+      const res = await authApi.getMe();
+      const profile = res.data;
+      const displayName = profile.display_name?.trim();
+      const fallbackName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
+      const accountName = profile.account?.username?.trim() || "";
+      userDisplayName.value = displayName || fallbackName || accountName || "Member";
+    } catch {
+      // Keep fallback display name when profile fetch fails.
+    }
+  };
+
+  const userInitials = computed(() => {
+    const parts = userDisplayName.value
+      .split(/\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    if (parts.length === 0) {
+      return "ME";
+    }
+
+    return parts
+      .slice(0, 2)
+      .map((part) => part.charAt(0).toUpperCase())
+      .join("");
+  });
+
+  onMounted(() => {
+    syncCurrentPath();
+    void loadCurrentMember();
+  });
   watch(
     () => route.path,
     () => {
@@ -131,19 +175,7 @@ export const useSidebarNavigation = (options: UseSidebarNavigationOptions = {}) 
     logoutConfirmOpen.value = false;
 
     if (typeof window !== "undefined") {
-      // Clear storage-backed auth/session state.
-      window.localStorage.clear();
-      window.sessionStorage.clear();
-
-      // Clear all cookies for current domain.
-      document.cookie.split(";").forEach((cookiePart) => {
-        const [rawName] = cookiePart.split("=");
-        const name = rawName?.trim();
-        if (!name) {
-          return;
-        }
-        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-      });
+      authApi.clearSession();
 
       window.location.href = "/";
     }
@@ -167,5 +199,8 @@ export const useSidebarNavigation = (options: UseSidebarNavigationOptions = {}) 
     confirmLogout,
     cancelLogout,
     mobileMaxWidth,
+    userDisplayName,
+    userInitials,
+    loadCurrentMember,
   };
 };

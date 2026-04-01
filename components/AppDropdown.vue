@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="relative inline-block text-left">
+  <div ref="root" class="relative block w-full text-left">
     <button
       type="button"
       :class="computedTriggerClass"

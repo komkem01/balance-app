@@ -197,7 +197,7 @@
           Authenticated as
         </p>
         <p class="text-sm font-semibold tracking-tight">
-          {{ userProfile.displayName }}
+          {{ userDisplayName }}
         </p>
         <button
           @click="logout"
@@ -1628,7 +1628,7 @@ import { ref, reactive, computed } from "vue";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 const mobileSidebarOpen = ref(false);
-const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout } = useSidebarNavigation({
+const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
   mobileMaxWidth: 1024,
   onCloseSidebar: () => {
     mobileSidebarOpen.value = false;

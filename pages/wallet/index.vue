@@ -196,7 +196,7 @@
         <p class="text-[9px] uppercase tracking-[0.2em] text-slate-300 mb-1">
           Authenticated as
         </p>
-        <p class="text-sm font-semibold tracking-tight">Johnathan Doe</p>
+        <p class="text-sm font-semibold tracking-tight">{{ userDisplayName }}</p>
         <button
           @click="logout"
           class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition"
@@ -929,7 +929,7 @@ import { ref, reactive, computed } from "vue";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 const mobileSidebarOpen = ref(false);
-const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout } = useSidebarNavigation({
+const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
   mobileMaxWidth: 1024,
   onCloseSidebar: () => {
     mobileSidebarOpen.value = false;

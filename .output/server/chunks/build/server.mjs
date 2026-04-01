@@ -589,52 +589,52 @@ const _routes = [
   {
     name: "account-profile",
     path: "/account-profile",
-    component: () => import('./index-CR9VCZfE.mjs')
+    component: () => import('./index-BJDIOyYH.mjs')
   },
   {
     name: "budget",
     path: "/budget",
-    component: () => import('./index-DLBTxvbA.mjs')
+    component: () => import('./index-B-Bzpiba.mjs')
   },
   {
     name: "categories",
     path: "/categories",
-    component: () => import('./index-kFvkq3NS.mjs')
+    component: () => import('./index-BZqiDSVX.mjs')
   },
   {
     name: "dashboard",
     path: "/dashboard",
-    component: () => import('./index-1h9LIs4x.mjs')
+    component: () => import('./index-BouK9UhQ.mjs')
   },
   {
     name: "new-entry",
     path: "/new-entry",
-    component: () => import('./index-DeAx0cm6.mjs')
+    component: () => import('./index-DEQ8XQrZ.mjs')
   },
   {
     name: "register",
     path: "/register",
-    component: () => import('./index-C9q21L84.mjs')
+    component: () => import('./index-CykEWTNU.mjs')
   },
   {
     name: "setting",
     path: "/setting",
-    component: () => import('./index-jp98tDfq.mjs')
+    component: () => import('./index-GO45Er2s.mjs')
   },
   {
     name: "transaction-ledger",
     path: "/transaction-ledger",
-    component: () => import('./index-FSL6qERV.mjs')
+    component: () => import('./index-D9r7rjBJ.mjs')
   },
   {
     name: "wallet",
     path: "/wallet",
-    component: () => import('./index-DAzws0Lk.mjs')
+    component: () => import('./index-DPRn4Y5J.mjs')
   },
   {
     name: "index",
     path: "/",
-    component: () => import('./index-CpHuws9K.mjs')
+    component: () => import('./index-DOklQlsd.mjs')
   }
 ];
 const _wrapInTransition = (props, children) => {
@@ -770,6 +770,15 @@ const validate = /* @__PURE__ */ defineNuxtRouteMiddleware(async (to, from) => {
   });
   return error;
 });
+const PUBLIC_PATHS = /* @__PURE__ */ new Set(["/", "/register"]);
+const auth_45global = /* @__PURE__ */ defineNuxtRouteMiddleware(async (to) => {
+  if (PUBLIC_PATHS.has(to.path)) {
+    return;
+  }
+  {
+    return;
+  }
+});
 const manifest_45route_45rule = /* @__PURE__ */ defineNuxtRouteMiddleware((to) => {
   {
     return;
@@ -777,6 +786,7 @@ const manifest_45route_45rule = /* @__PURE__ */ defineNuxtRouteMiddleware((to) =
 });
 const globalMiddleware = [
   validate,
+  auth_45global,
   manifest_45route_45rule
 ];
 const namedMiddleware = {};
