@@ -210,6 +210,8 @@
 
     <!-- Main Content Area -->
     <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
+      <AppLoading v-if="settingsLoading" overlay label="Loading data..." />
+
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -1486,11 +1488,13 @@
               </p>
               <div class="grid grid-cols-2 gap-4">
                 <button
+                  @click="openDevelopmentModal('CSV')"
                   class="py-4 border border-slate-100 rounded-2xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
                 >
                   Export CSV
                 </button>
                 <button
+                  @click="openDevelopmentModal('JSON')"
                   class="py-4 border border-slate-100 rounded-2xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
                 >
                   Export JSON
@@ -1589,6 +1593,17 @@
       @cancel="cancelLogout"
     />
 
+    <AppConfirmModal
+      :open="developmentModalOpen"
+      title="Feature In Development"
+      :description="developmentModalDescription"
+      confirm-label="OK"
+      cancel-label="Close"
+      @update:open="developmentModalOpen = false"
+      @confirm="developmentModalOpen = false"
+      @cancel="developmentModalOpen = false"
+    />
+
     <!-- Confirmation Modal -->
     <Transition name="fade">
       <div
@@ -1660,7 +1675,14 @@ const confirmModalOpen = ref(false);
 const confirmTitle = ref("Confirm Action");
 const confirmDescription = ref("");
 const confirmActionLabel = ref("Confirm");
+const developmentModalOpen = ref(false);
+const developmentModalDescription = ref("This feature is under development.");
 let pendingConfirmAction: null | (() => void | Promise<void>) = null;
+
+const openDevelopmentModal = (format: "CSV" | "JSON") => {
+  developmentModalDescription.value = `Export ${format} is currently under development.`;
+  developmentModalOpen.value = true;
+};
 
 const openConfirmModal = (
   title: string,

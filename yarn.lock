@@ -3590,6 +3590,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"atomico@npm:^1.79.2":
+  version: 1.79.2
+  resolution: "atomico@npm:1.79.2"
+  checksum: 10c0/6069590d2289d167f57bf26e60d369c2181c345840aed653dfa6aa84c08f662553f8673be0b3733d5f7af2af286a4f86a5392ac2c5d5bc3e29ff35e7bd85af1d
+  languageName: node
+  linkType: hard
+
 "autoprefixer@npm:^10.4.27":
   version: 10.4.27
   resolution: "autoprefixer@npm:10.4.27"
@@ -3625,6 +3632,7 @@ __metadata:
   dependencies:
     "@nuxt/ui": "npm:^4.6.0"
     "@tailwindcss/postcss": "npm:^4.2.2"
+    cally: "npm:^0.9.2"
     nuxt: "npm:^4.4.2"
     tailwindcss: "npm:^4.2.2"
     typescript: "npm:5.6.3"
@@ -3889,6 +3897,15 @@ __metadata:
     p-map: "npm:^7.0.2"
     ssri: "npm:^13.0.0"
   checksum: 10c0/539bf4020e44ba9ca5afc2ec435623ed7e0dd80c020097677e6b4a0545df5cc9d20b473212d01209c8b4aea43c0d095af0bb6da97bcb991642ea6fac0d7c462b
+  languageName: node
+  linkType: hard
+
+"cally@npm:^0.9.2":
+  version: 0.9.2
+  resolution: "cally@npm:0.9.2"
+  dependencies:
+    atomico: "npm:^1.79.2"
+  checksum: 10c0/ac07680f2ef2a38985cd45794a5bf64fd6a2ecaf2796b7550755655a7587ff0b114486d6d267e5bd07f9430ca3e4aa990d121d699ff12171310aeede8247e773
   languageName: node
   linkType: hard
 

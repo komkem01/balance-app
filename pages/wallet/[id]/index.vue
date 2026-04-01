@@ -1,0 +1,2102 @@
+<template>
+  <div
+    class="h-screen flex bg-slate-50 text-slate-900 font-sans relative overflow-hidden"
+  >
+    <!-- Mesh Background Layer -->
+    <div class="absolute inset-0 z-0 pointer-events-none">
+      <div
+        class="mesh-gradient absolute top-0 left-0 w-full h-full opacity-40"
+      ></div>
+    </div>
+
+    <!-- Sidebar Section -->
+    <aside
+      class="w-72 h-screen shrink-0 sticky top-0 bg-white/70 backdrop-blur-xl border-r border-slate-100 flex flex-col z-20 relative transition-all duration-500"
+    >
+      <div class="p-10">
+        <h1
+          class="text-xs font-bold tracking-[0.4em] text-slate-400 uppercase mb-1"
+        >
+          Archive
+        </h1>
+        <h2
+          class="text-2xl font-light tracking-tighter text-slate-900 uppercase"
+        >
+          Balance
+        </h2>
+      </div>
+
+      <!-- Navigation Accordion -->
+      <nav class="flex-1 px-6 space-y-2 overflow-y-auto">
+        <!-- Section: Overview -->
+        <div class="space-y-1">
+          <button
+            @click="toggleSection('overview')"
+            class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+          >
+            Overview
+            <span
+              class="text-[9px] transition-transform duration-300"
+              :class="{ 'rotate-180': sections.overview }"
+              >▼</span
+            >
+          </button>
+
+          <div
+            v-show="sections.overview"
+            class="overflow-hidden transition-all duration-300 space-y-1 ml-4 border-l border-slate-100"
+          >
+            <button
+              @click="openSidebarPath('dashboard')"
+              :class="navClass('dashboard')"
+            >
+              Dashboard
+            </button>
+            <button
+              @click="openSidebarPath('history')"
+              :class="navClass('history')"
+            >
+              Transaction Ledger
+            </button>
+          </div>
+        </div>
+
+        <!-- Section: Management -->
+        <div class="space-y-1">
+          <button
+            @click="toggleSection('management')"
+            class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+          >
+            Management
+            <span
+              class="text-[9px] transition-transform duration-300"
+              :class="{ 'rotate-180': sections.management }"
+              >▼</span
+            >
+          </button>
+
+          <div
+            v-show="sections.management"
+            class="overflow-hidden transition-all duration-300 space-y-1 ml-4 border-l border-slate-100"
+          >
+            <button
+              @click="openSidebarPath('wallets')"
+              :class="navClass('wallets')"
+            >
+              Wallets
+            </button>
+            <button
+              @click="openSidebarPath('categories')"
+              :class="navClass('categories')"
+            >
+              Categories
+            </button>
+            <button
+              @click="openSidebarPath('budgets')"
+              :class="navClass('budgets')"
+            >
+              Budgets
+            </button>
+          </div>
+        </div>
+
+        <!-- Section: Actions -->
+        <div class="space-y-1">
+          <button
+            @click="toggleSection('actions')"
+            class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+          >
+            Entry
+            <span
+              class="text-[9px] transition-transform duration-300"
+              :class="{ 'rotate-180': sections.actions }"
+              >▼</span
+            >
+          </button>
+
+          <div
+            v-show="sections.actions"
+            class="overflow-hidden transition-all duration-300 space-y-1 ml-4 border-l border-slate-100"
+          >
+            <button @click="openSidebarPath('record')" :class="navClass('record')">
+              New Transaction
+            </button>
+          </div>
+        </div>
+
+        <!-- Section: System -->
+        <div class="space-y-1">
+          <button
+            @click="toggleSection('system')"
+            class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+          >
+            System
+            <span
+              class="text-[9px] transition-transform duration-300"
+              :class="{ 'rotate-180': sections.system }"
+              >▼</span
+            >
+          </button>
+
+          <div
+            v-show="sections.system"
+            class="overflow-hidden transition-all duration-300 space-y-1 ml-4 border-l border-slate-100"
+          >
+            <button
+              @click="openSidebarPath('profile')"
+              :class="navClass('profile')"
+            >
+              Account Profile
+            </button>
+            <button
+              @click="openSidebarPath('settings')"
+              :class="navClass('settings')"
+            >
+              Settings
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Footer User Info -->
+      <div class="border-t border-slate-100 bg-slate-900 px-6 py-5 text-white">
+        <p class="text-[9px] uppercase tracking-[0.2em] text-slate-300 mb-1">
+          Authenticated as
+        </p>
+        <p class="text-sm font-semibold tracking-tight">
+          {{ sidebarUserDisplayName }}
+        </p>
+        <button
+          @click="logout"
+          class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition"
+        >
+          Logout
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 h-screen min-h-0 min-w-0 relative z-10 overflow-y-auto p-12">
+      <AppLoading v-if="pageLoading" overlay label="Loading data..." />
+
+      <!-- Dynamic Header Based on currentPath -->
+      <header class="mb-12 flex justify-between items-end">
+        <div>
+          <p
+            class="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.3em] mb-2"
+          >
+            {{ currentPath }}
+          </p>
+          <h3 class="text-4xl font-light tracking-tighter text-slate-900">
+            {{ pageTitle }}
+          </h3>
+        </div>
+        <div class="flex items-center space-x-6">
+          <div class="text-right">
+            <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">
+              Total Net Worth
+            </p>
+            <p class="text-2xl font-medium tracking-tight">
+              ฿
+              {{
+                totalNetWorth.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })
+              }}
+            </p>
+          </div>
+          <button
+            v-if="currentPath !== 'record'"
+            @click="openSidebarPath('record')"
+            class="bg-slate-900 text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
+          >
+            Quick Entry
+          </button>
+        </div>
+      </header>
+
+      <!-- Content Views -->
+      <div
+        class="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700"
+      >
+        <!-- Dashboard View -->
+        <div
+          v-if="currentPath === 'dashboard'"
+          class="grid grid-cols-1 xl:grid-cols-3 gap-8"
+        >
+          <!-- Left Column: Chart & History -->
+          <div class="xl:col-span-2 space-y-8">
+            <!-- Monthly Performance Chart -->
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <div class="flex justify-between items-center mb-10">
+                <h4
+                  class="text-[11px] font-bold text-slate-400 uppercase tracking-widest"
+                >
+                  Monthly Performance
+                </h4>
+                <div class="flex space-x-4">
+                  <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    <span
+                      class="text-[9px] text-slate-400 uppercase tracking-widest"
+                      >Income</span
+                    >
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 rounded-full bg-slate-200"></div>
+                    <span
+                      class="text-[9px] text-slate-400 uppercase tracking-widest"
+                      >Expense</span
+                    >
+                  </div>
+                </div>
+              </div>
+              <div class="h-56 flex items-end justify-between px-2 gap-4">
+                <div
+                  v-for="(h, i) in [
+                    40, 70, 45, 90, 65, 80, 50, 60, 40, 85, 30, 95,
+                  ]"
+                  :key="i"
+                  class="flex-1 group relative"
+                >
+                  <div
+                    class="w-full bg-slate-50 rounded-t-xl transition-all group-hover:bg-indigo-50"
+                    :style="{ height: h * 0.8 + '%' }"
+                  ></div>
+                  <div
+                    class="absolute bottom-0 w-full bg-indigo-500 rounded-t-xl opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                    :style="{ height: h * 0.5 + '%' }"
+                  ></div>
+                </div>
+              </div>
+              <div
+                class="flex justify-between mt-6 px-2 text-[9px] text-slate-300 uppercase tracking-widest font-bold"
+              >
+                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span
+                ><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span
+                ><span>Sep</span><span>Oct</span><span>Nov</span
+                ><span>Dec</span>
+              </div>
+            </div>
+
+            <!-- Recent Activity List Snapshot -->
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <div class="flex justify-between items-center mb-8">
+                <h4
+                  class="text-[11px] font-bold text-slate-400 uppercase tracking-widest"
+                >
+                  Recent Activity
+                </h4>
+                <button
+                  @click="currentPath = 'history'"
+                  class="text-[10px] font-bold text-indigo-500 uppercase tracking-wider hover:opacity-70 transition-opacity"
+                >
+                  View All Ledger
+                </button>
+              </div>
+              <div class="space-y-6">
+                <div
+                  v-for="item in recentTransactionsSnapshot"
+                  :key="item.id"
+                  class="flex justify-between items-center pb-4 border-b border-slate-50 last:border-0 last:pb-0"
+                >
+                  <div class="flex items-center space-x-4">
+                    <div
+                      class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400"
+                    >
+                      {{ item.category.substring(0, 2).toUpperCase() }}
+                    </div>
+                    <div>
+                      <p class="text-sm font-medium text-slate-900">
+                        {{ item.note || item.category }}
+                      </p>
+                      <p
+                        class="text-[10px] text-slate-400 uppercase tracking-widest"
+                      >
+                        {{ item.wallet }} • {{ item.date }}
+                      </p>
+                    </div>
+                  </div>
+                  <p
+                    :class="[
+                      'text-sm font-semibold',
+                      item.type === 'expense'
+                        ? 'text-rose-500'
+                        : 'text-emerald-500',
+                    ]"
+                  >
+                    {{ item.type === "expense" ? "-" : "+" }}
+                    {{ item.amount.toLocaleString() }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Wallets & Budgets Snapshot -->
+          <div class="space-y-8">
+            <div
+              class="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden"
+            >
+              <h4
+                class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-8"
+              >
+                Active Wallets
+              </h4>
+              <div class="space-y-8">
+                <div
+                  v-for="wallet in wallets.slice(0, 3)"
+                  :key="wallet.id"
+                  class="group cursor-pointer"
+                  @click="viewWalletLedger(wallet)"
+                >
+                  <div class="flex justify-between items-end mb-2">
+                    <p
+                      class="text-[10px] text-slate-400 uppercase tracking-widest"
+                    >
+                      {{ wallet.name }}
+                    </p>
+                    <span
+                      class="text-[8px] text-slate-600 group-hover:text-indigo-400 transition-colors"
+                      >DETAILS</span
+                    >
+                  </div>
+                  <p class="text-xl font-light tracking-tight">
+                    ฿ {{ wallet.balance.toLocaleString() }}
+                  </p>
+                </div>
+              </div>
+              <button
+                @click="currentPath = 'wallets'"
+                class="w-full mt-10 py-3 border border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all"
+              >
+                Manage Assets
+              </button>
+            </div>
+
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <h4
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8"
+              >
+                Budget Status
+              </h4>
+              <div class="space-y-8">
+                <div
+                  v-for="budget in activeBudgets"
+                  :key="budget.id"
+                  class="space-y-3"
+                >
+                  <div
+                    class="flex justify-between text-[10px] uppercase tracking-widest"
+                  >
+                    <span class="font-bold text-slate-900">{{
+                      budget.category
+                    }}</span>
+                    <span class="text-slate-400">{{ budget.percent }}%</span>
+                  </div>
+                  <div
+                    class="w-full bg-slate-50 h-1.5 rounded-full overflow-hidden"
+                  >
+                    <div
+                      :class="[
+                        'h-full transition-all duration-1000',
+                        budget.percent > 90 ? 'bg-rose-500' : 'bg-slate-900',
+                      ]"
+                      :style="{ width: budget.percent + '%' }"
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wallet History View (Specific Wallet Ledger) -->
+        <div v-else-if="currentPath === 'wallet-history'" class="space-y-10">
+          <!-- Back Navigation -->
+          <button
+            @click="openSidebarPath('wallets')"
+            class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
+          >
+            ← Back to Asset Management
+          </button>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Summary Stats for this wallet -->
+            <div class="lg:col-span-1 space-y-8">
+              <div
+                class="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-2xl relative overflow-hidden"
+              >
+                <p
+                  class="text-[10px] text-slate-500 uppercase tracking-widest mb-4"
+                >
+                  Current Status
+                </p>
+                <h4 class="text-xl font-medium tracking-tight mb-8">
+                  {{ selectedWallet?.name }}
+                </h4>
+                <div class="space-y-6">
+                  <div>
+                    <p
+                      class="text-[9px] text-slate-400 uppercase tracking-widest"
+                    >
+                      Available Balance
+                    </p>
+                    <p class="text-3xl font-light tracking-tighter">
+                      ฿
+                      {{
+                        selectedWallet?.balance.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })
+                      }}
+                    </p>
+                  </div>
+                  <div
+                    class="pt-6 border-t border-white/5 grid grid-cols-2 gap-4"
+                  >
+                    <div>
+                      <p
+                        class="text-[8px] text-slate-500 uppercase tracking-widest mb-1"
+                      >
+                        Total Income
+                      </p>
+                      <p class="text-sm font-medium text-emerald-400">
+                        + ฿{{ walletStats.income.toLocaleString() }}
+                      </p>
+                    </div>
+                    <div>
+                      <p
+                        class="text-[8px] text-slate-500 uppercase tracking-widest mb-1"
+                      >
+                        Total Expense
+                      </p>
+                      <p class="text-sm font-medium text-rose-400">
+                        - ฿{{ walletStats.expense.toLocaleString() }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Specific Wallet Ledger List -->
+            <div class="lg:col-span-2 space-y-6">
+              <div
+                class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden"
+              >
+                <div class="p-10 border-b border-slate-50">
+                  <h4
+                    class="text-[11px] font-bold text-slate-400 uppercase tracking-widest"
+                  >
+                    Detailed Ledger
+                  </h4>
+                </div>
+
+                <div class="divide-y divide-slate-50 min-h-[400px]">
+                  <div
+                    v-if="paginatedWalletTransactions.length === 0"
+                    class="p-20 text-center"
+                  >
+                    <p class="text-slate-300 text-sm font-light">
+                      No records found for this asset.
+                    </p>
+                  </div>
+                  <div
+                    v-for="item in paginatedWalletTransactions"
+                    :key="item.id"
+                    class="px-10 py-6 flex justify-between items-center hover:bg-slate-50/50 transition-colors"
+                  >
+                    <div class="flex items-center space-x-6">
+                      <div
+                        class="text-[10px] font-bold text-slate-300 uppercase whitespace-nowrap w-24"
+                      >
+                        {{ item.date }}
+                      </div>
+                      <div
+                        class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400"
+                      >
+                        {{ item.category.substring(0, 1).toUpperCase() }}
+                      </div>
+                      <div>
+                        <p class="text-sm font-medium">
+                          {{ item.note || item.category }}
+                        </p>
+                        <p
+                          class="text-[9px] text-slate-400 uppercase tracking-widest"
+                        >
+                          {{ item.category }}
+                        </p>
+                      </div>
+                    </div>
+                    <p
+                      :class="[
+                        'text-sm font-semibold',
+                        item.type === 'expense'
+                          ? 'text-rose-500'
+                          : 'text-emerald-500',
+                      ]"
+                    >
+                      {{ item.type === "expense" ? "-" : "+" }}
+                      {{ item.amount.toLocaleString() }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Pagination -->
+                <div
+                  v-if="walletTotalPages > 1"
+                  class="p-8 border-t border-slate-50 flex justify-between items-center"
+                >
+                  <button
+                    @click="walletPage--"
+                    :disabled="walletPage === 1"
+                    class="text-[9px] font-bold uppercase text-slate-400 hover:text-slate-900 disabled:opacity-20"
+                  >
+                    Previous
+                  </button>
+                  <span
+                    class="text-[10px] font-bold text-slate-300 uppercase tracking-widest"
+                    >Page {{ walletPage }} / {{ walletTotalPages }}</span
+                  >
+                  <button
+                    @click="walletPage++"
+                    :disabled="walletPage === walletTotalPages"
+                    class="text-[9px] font-bold uppercase text-slate-400 hover:text-slate-900 disabled:opacity-20"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wallets View (Asset Management) -->
+        <div
+          v-else-if="currentPath === 'wallets'"
+          class="grid grid-cols-1 md:grid-cols-2 gap-12"
+        >
+          <!-- Create Wallet Form -->
+          <div class="space-y-8">
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <h4
+                class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-8"
+              >
+                Register New Asset
+              </h4>
+              <form @submit.prevent="addWallet" class="space-y-6">
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Asset Name</label
+                  >
+                  <input
+                    v-model="newWallet.name"
+                    type="text"
+                    placeholder="E.g. Commercial Bank A"
+                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    required
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Initial Balance</label
+                  >
+                  <input
+                    v-model.number="newWallet.balance"
+                    type="number"
+                    placeholder="0.00"
+                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    required
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Currency Code</label
+                  >
+                  <select
+                    v-model="newWallet.currency"
+                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm appearance-none"
+                  >
+                    <option value="THB">THB - Thai Baht</option>
+                    <option value="USD">USD - US Dollar</option>
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  class="w-full py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all mt-4"
+                >
+                  Archive Asset
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Wallets Inventory -->
+          <div class="space-y-8">
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm min-h-[500px]"
+            >
+              <h4
+                class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-10"
+              >
+                Asset Inventory
+              </h4>
+              <div class="space-y-4">
+                <div
+                  v-for="wallet in wallets"
+                  :key="wallet.id"
+                  class="group p-8 bg-slate-50 rounded-[2rem] hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all border border-transparent hover:border-slate-50 flex justify-between items-center"
+                >
+                  <div>
+                    <p
+                      class="text-[9px] text-slate-400 uppercase tracking-widest mb-1"
+                    >
+                      {{ wallet.currency }}
+                    </p>
+                    <p
+                      class="text-base font-medium text-slate-900 tracking-tight"
+                    >
+                      {{ wallet.name }}
+                    </p>
+                    <!-- View History Link -->
+                    <button
+                      @click="viewWalletLedger(wallet)"
+                      class="text-[8px] font-bold text-indigo-500 uppercase tracking-widest mt-2 hover:opacity-70 transition-opacity"
+                    >
+                      View Ledger →
+                    </button>
+                  </div>
+                  <div class="text-right">
+                    <p
+                      class="text-lg font-light tracking-tighter text-slate-900"
+                    >
+                      ฿
+                      {{
+                        wallet.balance.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                        })
+                      }}
+                    </p>
+                    <button
+                      class="text-[9px] font-bold text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all mt-1"
+                    >
+                      Detach
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- History View (Transaction Ledger) -->
+        <div v-else-if="currentPath === 'history'" class="space-y-8">
+          <div
+            class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden"
+          >
+            <!-- History Header/Filters -->
+            <div
+              class="p-10 border-b border-slate-50 flex flex-wrap justify-between items-center gap-6"
+            >
+              <div class="flex space-x-8">
+                <button
+                  class="text-[10px] font-bold text-slate-900 uppercase tracking-widest border-b-2 border-slate-900 pb-1"
+                >
+                  All Activity
+                </button>
+                <button
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors pb-1"
+                >
+                  Income
+                </button>
+                <button
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors pb-1"
+                >
+                  Expenses
+                </button>
+              </div>
+              <div
+                class="text-[10px] font-bold text-slate-300 uppercase tracking-widest"
+              >
+                Displaying {{ startIndex + 1 }}-{{
+                  Math.min(endIndex, totalTransactions)
+                }}
+                of {{ totalTransactions }} Records
+              </div>
+            </div>
+
+            <!-- History Table-like List -->
+            <div class="divide-y divide-slate-50">
+              <div
+                v-for="item in paginatedTransactions"
+                :key="item.id"
+                class="px-10 py-6 hover:bg-slate-50/50 transition-colors flex justify-between items-center"
+              >
+                <div class="flex items-center space-x-6">
+                  <div
+                    class="text-[10px] font-bold text-slate-300 uppercase tracking-tighter w-16"
+                  >
+                    {{ item.date.split(",")[0] }}
+                  </div>
+                  <div
+                    class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500"
+                  >
+                    {{ item.category.substring(0, 1).toUpperCase() }}
+                  </div>
+                  <div>
+                    <p class="text-sm font-medium text-slate-900">
+                      {{ item.note || item.category }}
+                    </p>
+                    <p
+                      class="text-[9px] text-slate-400 uppercase tracking-[0.2em] mt-0.5"
+                    >
+                      {{ item.category }} • {{ item.wallet }}
+                    </p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p
+                    :class="[
+                      'text-sm font-semibold tracking-tight',
+                      item.type === 'expense'
+                        ? 'text-rose-500'
+                        : 'text-emerald-500',
+                    ]"
+                  >
+                    {{ item.type === "expense" ? "-" : "+" }}
+                    {{
+                      item.amount.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                      })
+                    }}
+                  </p>
+                  <p
+                    class="text-[9px] text-slate-300 uppercase tracking-widest mt-1"
+                  >
+                    Confirmed
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pagination Controls -->
+            <div
+              class="p-10 border-t border-slate-50 flex justify-between items-center"
+            >
+              <button
+                @click="prevPage"
+                :disabled="currentPage === 1"
+                class="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              >
+                Previous Archive
+              </button>
+
+              <div class="flex items-center space-x-6">
+                <button
+                  v-for="page in totalPages"
+                  :key="page"
+                  @click="currentPage = page"
+                  :class="[
+                    'text-[10px] font-bold transition-all',
+                    currentPage === page
+                      ? 'text-indigo-600 scale-125'
+                      : 'text-slate-300 hover:text-slate-600',
+                  ]"
+                >
+                  {{ page.toString().padStart(2, "0") }}
+                </button>
+              </div>
+
+              <button
+                @click="nextPage"
+                :disabled="currentPage === totalPages"
+                class="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+              >
+                Next Archive
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Categories View (Taxonomy Settings) -->
+        <div
+          v-else-if="currentPath === 'categories'"
+          class="grid grid-cols-1 md:grid-cols-2 gap-12"
+        >
+          <!-- Management Section -->
+          <div class="space-y-8">
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <h4
+                class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-8"
+              >
+                Define New Taxonomy
+              </h4>
+              <form @submit.prevent="addCategory" class="space-y-6">
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Label Name</label
+                  >
+                  <input
+                    v-model="newCategory.name"
+                    type="text"
+                    placeholder="E.g. Digital Services"
+                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    required
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Type Classification</label
+                  >
+                  <div class="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      @click="newCategory.type = 'income'"
+                      :class="[
+                        'py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all',
+                        newCategory.type === 'income'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-50 text-slate-400 hover:bg-slate-100',
+                      ]"
+                    >
+                      Income
+                    </button>
+                    <button
+                      type="button"
+                      @click="newCategory.type = 'expense'"
+                      :class="[
+                        'py-4 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all',
+                        newCategory.type === 'expense'
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-50 text-slate-400 hover:bg-slate-100',
+                      ]"
+                    >
+                      Expense
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  class="w-full py-5 bg-indigo-500 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg shadow-indigo-100 hover:bg-indigo-600 transition-all mt-4"
+                >
+                  Add Classification
+                </button>
+              </form>
+            </div>
+
+            <!-- Summary Stats -->
+            <div
+              class="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-xl"
+            >
+              <h4
+                class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-6"
+              >
+                Taxonomy Stats
+              </h4>
+              <div class="flex justify-between items-center">
+                <div>
+                  <p class="text-3xl font-light tracking-tighter">
+                    {{ categories.length }}
+                  </p>
+                  <p
+                    class="text-[9px] text-slate-500 uppercase tracking-widest mt-1"
+                  >
+                    Total Classes
+                  </p>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-medium">
+                    {{
+                      categories.filter((c) => c.type === "expense").length
+                    }}
+                    Expenses
+                  </p>
+                  <p class="text-sm font-medium">
+                    {{
+                      categories.filter((c) => c.type === "income").length
+                    }}
+                    Income
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Listing Section -->
+          <div class="space-y-8">
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm min-h-[500px]"
+            >
+              <div class="flex justify-between items-center mb-10">
+                <h4
+                  class="text-[11px] font-bold text-slate-400 uppercase tracking-widest"
+                >
+                  Existing Archive
+                </h4>
+                <div class="flex space-x-4">
+                  <button
+                    @click="categoryFilter = 'all'"
+                    :class="[
+                      'text-[9px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-all',
+                      categoryFilter === 'all'
+                        ? 'text-slate-900 border-slate-900'
+                        : 'text-slate-300 border-transparent',
+                    ]"
+                  >
+                    All
+                  </button>
+                  <button
+                    @click="categoryFilter = 'income'"
+                    :class="[
+                      'text-[9px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-all',
+                      categoryFilter === 'income'
+                        ? 'text-slate-900 border-slate-900'
+                        : 'text-slate-300 border-transparent',
+                    ]"
+                  >
+                    Income
+                  </button>
+                  <button
+                    @click="categoryFilter = 'expense'"
+                    :class="[
+                      'text-[9px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-all',
+                      categoryFilter === 'expense'
+                        ? 'text-slate-900 border-slate-900'
+                        : 'text-slate-300 border-transparent',
+                    ]"
+                  >
+                    Expense
+                  </button>
+                </div>
+              </div>
+
+              <div class="space-y-4">
+                <div
+                  v-for="cat in filteredCategories"
+                  :key="cat.id"
+                  class="group flex justify-between items-center p-6 bg-slate-50 rounded-[1.5rem] hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all border border-transparent hover:border-slate-50"
+                >
+                  <div class="flex items-center space-x-4">
+                    <div
+                      :class="[
+                        'w-2 h-2 rounded-full',
+                        cat.type === 'income'
+                          ? 'bg-emerald-400'
+                          : 'bg-rose-400',
+                      ]"
+                    ></div>
+                    <span
+                      class="text-sm font-medium text-slate-700 tracking-tight"
+                      >{{ cat.name }}</span
+                    >
+                  </div>
+                  <button
+                    class="text-[9px] font-bold text-slate-300 uppercase tracking-widest opacity-0 group-hover:opacity-100 hover:text-rose-500 transition-all"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Budgets View (Budget Allocation) -->
+        <div
+          v-else-if="currentPath === 'budgets'"
+          class="grid grid-cols-1 md:grid-cols-2 gap-12"
+        >
+          <!-- Create Budget Form -->
+          <div class="space-y-8">
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <h4
+                class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-8"
+              >
+                Set Spending Constraint
+              </h4>
+              <form @submit.prevent="addBudget" class="space-y-6">
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Target Taxonomy</label
+                  >
+                  <select
+                    v-model="newBudget.category_id"
+                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm appearance-none"
+                    required
+                  >
+                    <option value="" disabled>Select Category</option>
+                    <option
+                      v-for="cat in categories.filter(
+                        (c) => c.type === 'expense',
+                      )"
+                      :key="cat.id"
+                      :value="cat.id"
+                    >
+                      {{ cat.name }}
+                    </option>
+                  </select>
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Allocated Amount</label
+                  >
+                  <input
+                    v-model.number="newBudget.amount"
+                    type="number"
+                    placeholder="0.00"
+                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    required
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Time Period</label
+                  >
+                  <div class="grid grid-cols-3 gap-4">
+                    <button
+                      v-for="p in ['daily', 'weekly', 'monthly']"
+                      :key="p"
+                      type="button"
+                      @click="newBudget.period = p"
+                      :class="[
+                        'py-4 rounded-2xl text-[9px] font-bold uppercase tracking-widest transition-all',
+                        newBudget.period === p
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-slate-50 text-slate-400 hover:bg-slate-100',
+                      ]"
+                    >
+                      {{ p }}
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="submit"
+                  class="w-full py-5 bg-indigo-500 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg shadow-indigo-100 hover:bg-indigo-600 transition-all mt-4"
+                >
+                  Archive Budget
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Budgets List -->
+          <div class="space-y-8">
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm min-h-[500px]"
+            >
+              <div class="flex justify-between items-center mb-10">
+                <h4
+                  class="text-[11px] font-bold text-slate-400 uppercase tracking-widest"
+                >
+                  Active Constraints
+                </h4>
+                <div class="flex space-x-4">
+                  <button
+                    @click="budgetPeriodFilter = 'all'"
+                    :class="[
+                      'text-[9px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-all',
+                      budgetPeriodFilter === 'all'
+                        ? 'text-slate-900 border-slate-900'
+                        : 'text-slate-300 border-transparent',
+                    ]"
+                  >
+                    All
+                  </button>
+                  <button
+                    @click="budgetPeriodFilter = 'monthly'"
+                    :class="[
+                      'text-[9px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-all',
+                      budgetPeriodFilter === 'monthly'
+                        ? 'text-slate-900 border-slate-900'
+                        : 'text-slate-300 border-transparent',
+                    ]"
+                  >
+                    Monthly
+                  </button>
+                </div>
+              </div>
+
+              <div class="space-y-8">
+                <div
+                  v-for="budget in filteredBudgets"
+                  :key="budget.id"
+                  class="space-y-4 group"
+                >
+                  <div class="flex justify-between items-end px-1">
+                    <div>
+                      <p
+                        class="text-base font-medium text-slate-900 tracking-tight"
+                      >
+                        {{ getCategoryName(budget.category_id) }}
+                      </p>
+                      <p
+                        class="text-[9px] text-slate-400 uppercase tracking-[0.2em] mt-0.5"
+                      >
+                        {{ budget.period }} Constraint
+                      </p>
+                    </div>
+                    <div class="text-right">
+                      <p
+                        class="text-sm font-semibold tracking-tight text-slate-900"
+                      >
+                        ฿ {{ budget.spent.toLocaleString() }} /
+                        {{ budget.amount.toLocaleString() }}
+                      </p>
+                      <p
+                        class="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5"
+                      >
+                        {{ Math.round((budget.spent / budget.amount) * 100) }}%
+                        Used
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    class="w-full bg-slate-50 h-2 rounded-full overflow-hidden"
+                  >
+                    <div
+                      :class="[
+                        'h-full transition-all duration-1000',
+                        budget.spent / budget.amount > 0.9
+                          ? 'bg-rose-500'
+                          : 'bg-slate-900',
+                      ]"
+                      :style="{
+                        width:
+                          Math.min(budget.spent / budget.amount, 1) * 100 + '%',
+                      }"
+                    ></div>
+                  </div>
+                  <div
+                    class="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <button
+                      class="text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-rose-500 transition-colors"
+                    >
+                      Terminate
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile View (User Identity) -->
+        <div v-else-if="currentPath === 'profile'" class="max-w-4xl space-y-12">
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <!-- Profile Info Card -->
+            <div class="lg:col-span-2 space-y-8">
+              <div
+                class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+              >
+                <h4
+                  class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-10"
+                >
+                  Personal Information
+                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div class="space-y-2">
+                    <label
+                      class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                      >First Name</label
+                    >
+                    <input
+                      type="text"
+                      v-model="userProfile.firstName"
+                      class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label
+                      class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                      >Last Name</label
+                    >
+                    <input
+                      type="text"
+                      v-model="userProfile.lastName"
+                      class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label
+                      class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                      >Display Name</label
+                    >
+                    <input
+                      type="text"
+                      v-model="userProfile.displayName"
+                      class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    />
+                  </div>
+                  <div class="space-y-2">
+                    <label
+                      class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                      >Contact Number</label
+                    >
+                    <input
+                      type="text"
+                      v-model="userProfile.phone"
+                      class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+                <button
+                  class="mt-10 px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
+                >
+                  Update Profile
+                </button>
+              </div>
+
+              <!-- Security Card -->
+              <div
+                class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+              >
+                <h4
+                  class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-10"
+                >
+                  Security Credentials
+                </h4>
+                <div class="space-y-6">
+                  <div class="space-y-2">
+                    <label
+                      class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                      >Current Password</label
+                    >
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    />
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-2">
+                      <label
+                        class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                        >New Password</label
+                      >
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                      />
+                    </div>
+                    <div class="space-y-2">
+                      <label
+                        class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                        >Confirm New Password</label
+                      >
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <button
+                  class="mt-10 px-8 py-4 border border-slate-900 text-slate-900 rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                  Change Password
+                </button>
+              </div>
+            </div>
+
+            <!-- Stats/Summary Column -->
+            <div class="space-y-8">
+              <div
+                class="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden"
+              >
+                <p
+                  class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-8"
+                >
+                  Account Summary
+                </p>
+                <div class="space-y-6">
+                  <div>
+                    <p
+                      class="text-[9px] text-slate-400 uppercase tracking-widest"
+                    >
+                      Username
+                    </p>
+                    <p class="text-base font-medium">john_doe_archive</p>
+                  </div>
+                  <div>
+                    <p
+                      class="text-[9px] text-slate-400 uppercase tracking-widest"
+                    >
+                      Member Since
+                    </p>
+                    <p class="text-base font-medium">October 2023</p>
+                  </div>
+                  <div class="pt-6 border-t border-white/10">
+                    <button
+                      class="text-[10px] font-bold text-rose-400 uppercase tracking-widest hover:text-rose-300 transition-colors"
+                    >
+                      Deactivate Archive
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings View (System Preferences) -->
+        <div
+          v-else-if="currentPath === 'settings'"
+          class="max-w-4xl space-y-12"
+        >
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <!-- Regional & Preferences -->
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <h4
+                class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-10"
+              >
+                Regional Settings
+              </h4>
+              <div class="space-y-8">
+                <div class="space-y-3">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Primary Currency</label
+                  >
+                  <select
+                    v-model="systemSettings.currency"
+                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm appearance-none"
+                  >
+                    <option value="THB">THB - Thai Baht (฿)</option>
+                    <option value="USD">USD - US Dollar ($)</option>
+                    <option value="EUR">EUR - Euro (€)</option>
+                  </select>
+                </div>
+                <div class="space-y-3">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >System Language</label
+                  >
+                  <select
+                    v-model="systemSettings.language"
+                    class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm appearance-none"
+                  >
+                    <option value="EN">English (US)</option>
+                    <option value="TH">ไทย (Thai)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Notifications Toggle Style -->
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <h4
+                class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-10"
+              >
+                Notification Archive
+              </h4>
+              <div class="space-y-6">
+                <div
+                  v-for="(val, key) in systemSettings.notifications"
+                  :key="key"
+                  class="flex justify-between items-center group"
+                >
+                  <div>
+                    <p
+                      class="text-sm font-medium text-slate-900 capitalize tracking-tight"
+                    >
+                      {{ key }} Alerts
+                    </p>
+                    <p
+                      class="text-[9px] text-slate-400 uppercase tracking-widest"
+                    >
+                      Enable system {{ key }} push
+                    </p>
+                  </div>
+                  <button
+                    @click="
+                      systemSettings.notifications[key] =
+                        !systemSettings.notifications[key]
+                    "
+                    :class="[
+                      'w-12 h-6 rounded-full transition-all duration-300 relative',
+                      systemSettings.notifications[key]
+                        ? 'bg-slate-900'
+                        : 'bg-slate-100',
+                    ]"
+                  >
+                    <div
+                      :class="[
+                        'absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300',
+                        systemSettings.notifications[key] ? 'left-7' : 'left-1',
+                      ]"
+                    ></div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Data Management -->
+            <div
+              class="bg-white p-10 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <h4
+                class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-10"
+              >
+                Data Management
+              </h4>
+              <p class="text-xs text-slate-400 mb-8 leading-relaxed">
+                Securely export your financial archive for external analysis or
+                backup purposes.
+              </p>
+              <div class="grid grid-cols-2 gap-4">
+                <button
+                  class="py-4 border border-slate-100 rounded-2xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                  Export CSV
+                </button>
+                <button
+                  class="py-4 border border-slate-100 rounded-2xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
+                >
+                  Export JSON
+                </button>
+              </div>
+            </div>
+
+            <!-- System About -->
+            <div
+              class="bg-slate-900 text-white p-10 rounded-[2.5rem] shadow-xl relative overflow-hidden"
+            >
+              <h4
+                class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-8"
+              >
+                System Manifest
+              </h4>
+              <div class="space-y-6">
+                <div
+                  class="flex justify-between items-end border-b border-white/5 pb-4"
+                >
+                  <p
+                    class="text-[9px] text-slate-400 uppercase tracking-widest"
+                  >
+                    Version
+                  </p>
+                  <p class="text-xs font-medium tracking-widest">2.4.0-PRO</p>
+                </div>
+                <div
+                  class="flex justify-between items-end border-b border-white/5 pb-4"
+                >
+                  <p
+                    class="text-[9px] text-slate-400 uppercase tracking-widest"
+                  >
+                    Encrypted Status
+                  </p>
+                  <p
+                    class="text-xs font-medium text-emerald-400 tracking-widest"
+                  >
+                    AES-256 SECURE
+                  </p>
+                </div>
+                <div class="pt-2 text-center">
+                  <p
+                    class="text-[8px] text-slate-500 uppercase tracking-[0.3em]"
+                  >
+                    Balance Finance Archive &copy; 2026
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Placeholder for other modules -->
+        <div
+          v-else
+          class="min-h-[500px] flex items-center justify-center border-2 border-dashed border-slate-100 rounded-[3rem] bg-white/30 backdrop-blur-sm"
+        >
+          <div class="text-center max-w-sm">
+            <h5
+              class="text-[11px] font-bold text-slate-900 uppercase tracking-[0.4em] mb-4"
+            >
+              Module Locked
+            </h5>
+            <p class="text-sm text-slate-400 font-light leading-relaxed mb-8">
+              The interface for
+              <span class="text-indigo-500 font-medium">{{ pageTitle }}</span>
+              is currently under architectural review.
+            </p>
+            <button
+              @click="currentPath = 'dashboard'"
+              class="text-[10px] font-bold text-slate-900 uppercase tracking-widest border-b border-slate-900 pb-1 hover:opacity-50 transition-opacity"
+            >
+              Return to Core
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Success Message Overlay -->
+    <Transition name="fade-slide">
+      <div
+        v-if="message"
+        class="fixed bottom-10 left-1/2 -translate-x-1/2 px-8 py-4 bg-white border border-slate-100 shadow-2xl rounded-2xl text-[10px] font-bold tracking-widest text-slate-900 uppercase z-50"
+      >
+        {{ message }}
+      </div>
+    </Transition>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { useAuthApi } from "../../../composables/useAuthApi";
+
+const currentPath = ref("wallet-history");
+const loading = ref(false);
+const pageLoading = ref(false);
+const message = ref("");
+const route = useRoute();
+const router = useRouter();
+const authApi = useAuthApi();
+const { listMyWallets, listMyCategories, listMyBudgets, listMyTransactions, getMe } =
+  authApi;
+const sidebarUserDisplayName = ref("Member");
+
+// Accordion States for Sidebar
+const sections = reactive({
+  overview: false,
+  management: true,
+  actions: false,
+  system: false,
+});
+
+const toggleSection = (section: keyof typeof sections) => {
+  const willOpen = !sections[section];
+  (Object.keys(sections) as Array<keyof typeof sections>).forEach((key) => {
+    sections[key] = false;
+  });
+
+  if (willOpen) {
+    sections[section] = true;
+  }
+};
+
+const sidebarRouteMap: Record<string, string> = {
+  dashboard: "/dashboard",
+  history: "/transaction-ledger",
+  wallets: "/wallet",
+  categories: "/categories",
+  budgets: "/budget",
+  record: "/new-entry",
+  profile: "/account-profile",
+  settings: "/setting",
+};
+
+const openSidebarPath = (path: string) => {
+  const target = sidebarRouteMap[path];
+  if (target) {
+    void router.push(target);
+    return;
+  }
+
+  currentPath.value = path;
+};
+
+const logout = () => {
+  if (typeof window !== "undefined") {
+    authApi.clearSession();
+    window.location.href = "/";
+  }
+};
+
+// User Profile State
+const userProfile = reactive({
+  firstName: "Johnathan",
+  lastName: "Doe",
+  displayName: "Johnathan Doe",
+  phone: "081-234-5678",
+});
+
+// System Settings State
+const systemSettings = reactive({
+  currency: "THB",
+  language: "EN",
+  notifications: {
+    budget: true,
+    security: true,
+    weekly: false,
+  },
+});
+
+// Wallets State & Logic
+type TransactionType = "income" | "expense";
+
+type WalletItem = {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+};
+
+type CategoryItem = {
+  id: string;
+  name: string;
+  type: TransactionType;
+};
+
+type BudgetItem = {
+  id: string;
+  category_id: string;
+  amount: number;
+  spent: number;
+  period: string;
+};
+
+type TransactionItem = {
+  id: string;
+  category: string;
+  note: string;
+  amount: number;
+  type: TransactionType;
+  wallet: string;
+  wallet_id: string;
+  date: string;
+};
+
+const wallets = ref<WalletItem[]>([]);
+
+const selectedWalletId = ref<string | null>(null);
+const selectedWallet = computed(() =>
+  wallets.value.find((w) => w.id === selectedWalletId.value),
+);
+
+const newWallet = reactive({
+  name: "",
+  balance: 0,
+  currency: "THB",
+});
+
+const totalNetWorth = computed(() => {
+  return wallets.value.reduce((acc, curr) => acc + curr.balance, 0);
+});
+
+const addWallet = () => {
+  if (!newWallet.name) return;
+  wallets.value.unshift({
+    id: Date.now().toString(),
+    name: newWallet.name,
+    balance: newWallet.balance,
+    currency: newWallet.currency,
+  });
+  newWallet.name = "";
+  newWallet.balance = 0;
+};
+
+const viewWalletLedger = (wallet: any) => {
+  selectedWalletId.value = wallet.id;
+  walletPage.value = 1;
+  currentPath.value = "wallet-history";
+  void router.push(`/wallet/${wallet.id}`);
+};
+
+// Categories State & Logic
+const categories = ref<CategoryItem[]>([]);
+
+const categoryFilter = ref("all");
+const newCategory = reactive({
+  name: "",
+  type: "expense",
+});
+
+const filteredCategories = computed(() => {
+  if (categoryFilter.value === "all") return categories.value;
+  return categories.value.filter((c) => c.type === categoryFilter.value);
+});
+
+const getCategoryName = (id: string) => {
+  const cat = categories.value.find((c) => c.id === id);
+  return cat ? cat.name : "Unknown";
+};
+
+const addCategory = () => {
+  if (!newCategory.name) return;
+  categories.value.unshift({
+    id: Date.now().toString(),
+    name: newCategory.name,
+    type: newCategory.type as TransactionType,
+  });
+  newCategory.name = "";
+};
+
+// Budgets State & Logic
+const budgets = ref<BudgetItem[]>([]);
+
+const budgetPeriodFilter = ref("all");
+const newBudget = reactive({
+  category_id: "",
+  amount: 0,
+  period: "monthly",
+});
+
+const filteredBudgets = computed(() => {
+  if (budgetPeriodFilter.value === "all") return budgets.value;
+  return budgets.value.filter((b) => b.period === budgetPeriodFilter.value);
+});
+
+const addBudget = () => {
+  if (!newBudget.category_id || !newBudget.amount) return;
+  budgets.value.unshift({
+    id: Date.now().toString(),
+    category_id: newBudget.category_id,
+    amount: newBudget.amount,
+    spent: 0,
+    period: newBudget.period,
+  });
+  newBudget.category_id = "";
+  newBudget.amount = 0;
+};
+
+// Transaction Ledger (History) State & Logic
+const allTransactions = ref<TransactionItem[]>([]);
+
+const recentTransactionsSnapshot = computed(() =>
+  allTransactions.value.slice(0, 3),
+);
+
+// Specific Wallet History Logic
+const walletTransactions = computed(() => {
+  if (!selectedWallet.value) return [];
+  return allTransactions.value.filter((t) => t.wallet_id === selectedWalletId.value);
+});
+
+const walletStats = computed(() => {
+  const trans = walletTransactions.value;
+  return {
+    income: trans
+      .filter((t) => t.type === "income")
+      .reduce((acc, t) => acc + t.amount, 0),
+    expense: trans
+      .filter((t) => t.type === "expense")
+      .reduce((acc, t) => acc + t.amount, 0),
+  };
+});
+
+const walletPage = ref(1);
+const walletItemsPerPage = 5;
+const walletTotalPages = computed(
+  () => Math.ceil(walletTransactions.value.length / walletItemsPerPage) || 1,
+);
+const paginatedWalletTransactions = computed(() => {
+  const start = (walletPage.value - 1) * walletItemsPerPage;
+  return walletTransactions.value.slice(start, start + walletItemsPerPage);
+});
+
+// New Entry State & Logic
+const newRecord = reactive({
+  type: "expense",
+  amount: null,
+  wallet_id: "",
+  category_id: "",
+  date: new Date().toISOString().split("T")[0],
+  note: "",
+});
+
+const submitTransaction = async () => {
+  if (!newRecord.amount || !newRecord.wallet_id || !newRecord.category_id)
+    return;
+
+  loading.value = true;
+
+  // Simulate API Call
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  const selectedWalletObj = wallets.value.find(
+    (w) => w.id === newRecord.wallet_id,
+  );
+  const selectedCategory = categories.value.find(
+    (c) => c.id === newRecord.category_id,
+  );
+
+  if (selectedWalletObj && selectedCategory) {
+    // Update Wallet Balance
+    if (newRecord.type === "expense") {
+      selectedWalletObj.balance -= newRecord.amount;
+    } else {
+      selectedWalletObj.balance += newRecord.amount;
+    }
+
+    // Add to History
+    allTransactions.value.unshift({
+      id: Date.now().toString(),
+      category: selectedCategory.name,
+      note: newRecord.note,
+      amount: newRecord.amount,
+      type: newRecord.type as TransactionType,
+      wallet: selectedWalletObj.name,
+      wallet_id: selectedWalletObj.id,
+      date: newRecord.date,
+    });
+
+    // Check and update Budget if it's an expense
+    if (newRecord.type === "expense") {
+      const budget = budgets.value.find(
+        (b) => b.category_id === selectedCategory.id,
+      );
+      if (budget) budget.spent += newRecord.amount;
+    }
+  }
+
+  loading.value = false;
+  message.value = "Entry Archived Successfully";
+
+  // Reset Form
+  newRecord.amount = null;
+  newRecord.note = "";
+
+  setTimeout(() => {
+    message.value = "";
+    currentPath.value = "dashboard";
+  }, 2000);
+};
+
+// Pagination State for General History
+const currentPage = ref(1);
+const itemsPerPage = 6;
+
+const totalTransactions = computed(() => allTransactions.value.length);
+const totalPages = computed(() =>
+  Math.ceil(totalTransactions.value / itemsPerPage),
+);
+
+const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage);
+const endIndex = computed(() => startIndex.value + itemsPerPage);
+
+const paginatedTransactions = computed(() => {
+  return allTransactions.value.slice(startIndex.value, endIndex.value);
+});
+
+const prevPage = () => {
+  if (currentPage.value > 1) currentPage.value--;
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++;
+};
+
+// Dashboard specific budget snapshot
+const activeBudgets = computed(() => {
+  return budgets.value.map((b) => ({
+    id: b.id,
+    category: getCategoryName(b.category_id),
+    percent: Math.min(Math.round((b.spent / b.amount) * 100), 100),
+  }));
+});
+
+const formatDateDisplay = (value: string | null) => {
+  if (!value) return "-";
+
+  const normalized = value.includes("T") ? value : `${value}T00:00:00`;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(parsed);
+};
+
+const loadInitialData = async () => {
+  pageLoading.value = true;
+  try {
+    const [walletRes, categoryRes, budgetRes] = await Promise.all([
+      listMyWallets({ page: 1, size: 300, isActive: true }),
+      listMyCategories({ page: 1, size: 300 }),
+      listMyBudgets({ page: 1, size: 300 }),
+    ]);
+
+    wallets.value = (walletRes.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      balance: Number(item.balance || 0),
+      currency: "THB",
+    }));
+
+    categories.value = (categoryRes.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type as TransactionType,
+    }));
+
+    budgets.value = (budgetRes.items || []).map((item) => ({
+      id: item.id,
+      category_id: item.category_id || "",
+      amount: Number(item.amount || 0),
+      spent: Number(item.spent_amount || 0),
+      period: "monthly",
+    }));
+
+    const txRes = await listMyTransactions({ page: 1, size: 500 });
+    const walletMap = new Map(wallets.value.map((item) => [item.id, item.name]));
+    const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
+
+    allTransactions.value = (txRes.items || []).map((item) => ({
+      id: item.id,
+      category: item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized",
+      note: item.note || "",
+      amount: Number(item.amount || 0),
+      type: item.type as TransactionType,
+      wallet: item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet",
+      wallet_id: item.wallet_id || "",
+      date: formatDateDisplay(item.transaction_date),
+    }));
+
+    const routeWalletID = String(route.params.id || "").trim();
+    if (routeWalletID) {
+      selectedWalletId.value = routeWalletID;
+    } else if (wallets.value.length > 0) {
+      selectedWalletId.value = wallets.value[0].id;
+    }
+
+    walletPage.value = 1;
+    currentPath.value = "wallet-history";
+  } catch (error) {
+    console.error("wallet-page-load-failed", error);
+  } finally {
+    pageLoading.value = false;
+  }
+};
+
+const loadSidebarMember = async () => {
+  try {
+    const me = await getMe();
+    const profile = me.data;
+    const displayName = profile.display_name?.trim();
+    const fallbackName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
+    const username = profile.account?.username?.trim() || "";
+    sidebarUserDisplayName.value = displayName || fallbackName || username || "Member";
+  } catch {
+    sidebarUserDisplayName.value = "Member";
+  }
+};
+
+onMounted(() => {
+  void loadInitialData();
+  void loadSidebarMember();
+});
+
+const pageTitle = computed(() => {
+  switch (currentPath.value) {
+    case "dashboard":
+      return "Financial Overview";
+    case "history":
+      return "Transaction Ledger";
+    case "wallets":
+      return "Asset Management";
+    case "categories":
+      return "Taxonomy Settings";
+    case "budgets":
+      return "Budget Allocation";
+    case "record":
+      return "Execute Entry";
+    case "profile":
+      return "User Identity";
+    case "settings":
+      return "System Preferences";
+    case "wallet-history":
+      return "Wallet Detailed Archive";
+    default:
+      return "Archive";
+  }
+});
+
+const navClass = (path: string) => {
+  const activePath = currentPath.value === "wallet-history" ? "wallets" : currentPath.value;
+  const base =
+    "w-full text-left px-4 py-3 text-[11px] uppercase tracking-widest transition-all duration-300 rounded-xl ";
+  return activePath === path
+    ? base + "bg-slate-900 text-white font-bold shadow-lg shadow-slate-200"
+    : base + "text-slate-400 hover:text-slate-900 hover:bg-slate-50";
+};
+</script>
+
+<style scoped>
+.mesh-gradient {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.08) 0px, transparent 50%),
+    radial-gradient(
+      at 100% 100%,
+      rgba(99, 102, 241, 0.08) 0px,
+      transparent 50%
+    ),
+    radial-gradient(at 0% 100%, rgba(139, 92, 246, 0.08) 0px, transparent 50%);
+}
+
+/* Hide scrollbar but keep functionality */
+aside::-webkit-scrollbar,
+main::-webkit-scrollbar {
+  display: none;
+}
+
+.premium-card {
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-in {
+  animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Transitions */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.5s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translate(-50%, 20px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -10px);
+}
+</style>

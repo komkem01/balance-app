@@ -21,8 +21,8 @@
         'bg-white border-r border-slate-200 shadow-[8px_0_24px_rgba(15,23,42,0.06)] flex flex-col z-20 transition-all duration-300 ease-out',
         'fixed inset-y-0 left-0',
         mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full min-[1025px]:translate-x-0',
-        sidebarCollapsed ? 'min-[1025px]:w-20' : 'min-[1025px]:w-64',
-        'w-64'
+        sidebarCollapsed ? 'min-[1025px]:w-20' : 'min-[1025px]:w-72',
+        'w-72'
       ]"
     >
       <div :class="['relative px-7 py-8', sidebarCollapsed ? 'px-3' : '']">
@@ -282,6 +282,8 @@
       class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300"
       :style="mainContentStyle"
     >
+      <AppLoading v-if="pageLoading" overlay label="Loading data..." />
+
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -465,6 +467,7 @@
                   v-for="wallet in wallets"
                   :key="wallet.id"
                   class="group cursor-pointer"
+                  @click="openWalletDetail(wallet.id)"
                 >
                   <div class="flex justify-between items-end mb-2">
                     <p
@@ -571,9 +574,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { useRouter } from "vue-router";
+import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
+
+type TransactionType = "income" | "expense";
+
+type WalletItem = {
+  id: string;
+  name: string;
+  balance: number;
+};
+
+type CategoryItem = {
+  id: string;
+  name: string;
+};
+
+type BudgetItem = {
+  id: string;
+  category_id: string;
+  amount: number;
+  spent: number;
+};
+
+type TransactionItem = {
+  id: string;
+  walletID: string;
+  category: string;
+  note: string;
+  amount: number;
+  type: TransactionType;
+  wallet: string;
+  date: string;
+};
 
 const sidebarCollapsed = ref(false);
 const mobileSidebarOpen = ref(false);
@@ -593,14 +629,21 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { listMyWallets, listMyCategories, listMyBudgets, listMyTransactions } = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
+const router = useRouter();
+const wallets = ref<WalletItem[]>([]);
+const categories = ref<CategoryItem[]>([]);
+const budgets = ref<BudgetItem[]>([]);
+const allTransactions = ref<TransactionItem[]>([]);
+const pageLoading = ref(false);
 
 const mainContentStyle = computed(() => {
   if (!isDesktop.value) {
     return { marginLeft: "0px", width: "100%" };
   }
 
-  const sidebarWidth = sidebarCollapsed.value ? 80 : 256;
+  const sidebarWidth = sidebarCollapsed.value ? 80 : 288;
   return {
     marginLeft: `${sidebarWidth}px`,
     width: `calc(100% - ${sidebarWidth}px)`,
@@ -622,60 +665,116 @@ const syncResponsiveState = () => {
 onMounted(() => {
   syncResponsiveState();
   window.addEventListener("resize", syncResponsiveState);
-  void refreshTotalNetWorth();
+  void loadInitialData();
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", syncResponsiveState);
 });
 
-// Mock Data for Dashboard
-const wallets = [
-  { id: 1, name: "Main Savings", balance: 120000 },
-  { id: 2, name: "Cash on Hand", balance: 2500 },
-  { id: 3, name: "Investment Port", balance: 20000 },
-];
+const normalizeErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "request-failed";
+};
+
+const formatDateDisplay = (value: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  const normalized = value.includes("T") ? value : `${value}T00:00:00`;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(parsed);
+};
 
 const headerTotalNetWorth = computed(() => {
-  const fallback = wallets.reduce((acc, curr) => acc + curr.balance, 0);
+  const fallback = wallets.value.reduce((acc, curr) => acc + curr.balance, 0);
   return totalNetWorthFromAPI.value ?? fallback;
 });
 
-const recentTransactions = [
-  {
-    id: 1,
-    category: "Food & Drink",
-    note: "Starbucks Coffee",
-    amount: 145,
-    type: "expense",
-    wallet: "Cash",
-    date: "Today, 14:20",
-  },
-  {
-    id: 2,
-    category: "Salary",
-    note: "Monthly Revenue",
-    amount: 45000,
-    type: "income",
-    wallet: "Savings",
-    date: "Yesterday",
-  },
-  {
-    id: 3,
-    category: "Transport",
-    note: "Grab Ride",
-    amount: 220,
-    type: "expense",
-    wallet: "Savings",
-    date: "22 Oct",
-  },
-];
+const recentTransactions = computed(() => allTransactions.value.slice(0, 3));
 
-const activeBudgets = [
-  { id: 1, category: "Dining Out", percent: 85 },
-  { id: 2, category: "Entertainment", percent: 30 },
-  { id: 3, category: "Shopping", percent: 92 },
-];
+const activeBudgets = computed(() => {
+  const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
+  return budgets.value.map((budget) => {
+    const percent = budget.amount > 0 ? Math.min(Math.round((budget.spent / budget.amount) * 100), 100) : 0;
+    return {
+      id: budget.id,
+      category: categoryMap.get(budget.category_id) || "Unknown",
+      percent,
+    };
+  });
+});
+
+const loadWallets = async () => {
+  const res = await listMyWallets({ page: 1, size: 200, isActive: true });
+  wallets.value = (res.items || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    balance: Number(item.balance || 0),
+  }));
+};
+
+const loadCategories = async () => {
+  const res = await listMyCategories({ page: 1, size: 300 });
+  categories.value = (res.items || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+  }));
+};
+
+const loadBudgets = async () => {
+  const res = await listMyBudgets({ page: 1, size: 300 });
+  budgets.value = (res.items || []).map((item) => ({
+    id: item.id,
+    category_id: item.category_id || "",
+    amount: Number(item.amount || 0),
+    spent: Number(item.spent_amount || 0),
+  }));
+};
+
+const loadTransactions = async () => {
+  const res = await listMyTransactions({ page: 1, size: 300 });
+  const walletMap = new Map(wallets.value.map((item) => [item.id, item.name]));
+  const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
+
+  allTransactions.value = (res.items || []).map((item) => ({
+    id: item.id,
+    walletID: item.wallet_id || "",
+    category: item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized",
+    note: item.note || "",
+    amount: Number(item.amount || 0),
+    type: item.type,
+    wallet: item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet",
+    date: formatDateDisplay(item.transaction_date),
+  }));
+};
+
+const loadInitialData = async () => {
+  pageLoading.value = true;
+  try {
+    await Promise.all([loadWallets(), loadCategories(), loadBudgets()]);
+    await Promise.all([loadTransactions(), refreshTotalNetWorth()]);
+  } catch (error) {
+    console.error("dashboard-load-failed", normalizeErrorMessage(error));
+  } finally {
+    pageLoading.value = false;
+  }
+};
+
+const openWalletDetail = (walletID: string) => {
+  void router.push(`/wallet/${walletID}`);
+};
 
 const pageTitle = computed(() => {
   switch (currentPath.value) {

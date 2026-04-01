@@ -208,6 +208,8 @@
 
     <!-- Main Content Area -->
     <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
+      <AppLoading v-if="pageLoading" overlay label="Loading data..." />
+
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -458,7 +460,7 @@
           class="max-w-3xl mx-auto space-y-8"
         >
           <div
-            class="bg-white p-12 md:p-16 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden"
+            class="bg-white p-12 md:p-16 rounded-[3rem] border border-slate-100 shadow-sm relative"
           >
             <h4
               class="text-[11px] font-bold text-slate-400 uppercase tracking-[0.4em] mb-12 text-center"
@@ -553,10 +555,49 @@
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
                     >Transaction Date</label
                   >
+                  <div ref="datePickerContainerRef" class="relative">
+                    <button
+                      type="button"
+                      class="w-full rounded-2xl border border-slate-200 bg-slate-50 px-8 py-5 text-left text-sm font-medium text-slate-700 transition hover:bg-white"
+                      @click="datePickerOpen = !datePickerOpen"
+                    >
+                      {{ calendarButtonLabel }}
+                    </button>
+                    <div
+                      v-if="datePickerOpen"
+                      class="absolute bottom-full left-0 z-50 mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl"
+                    >
+                      <calendar-date
+                        class="cally block rounded-xl border border-slate-200 bg-slate-50 p-2"
+                        :value="newRecord.date"
+                        @change="onCalendarDateChange"
+                      >
+                        <svg
+                          aria-label="Previous"
+                          class="size-4 fill-current text-slate-500"
+                          slot="previous"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                        >
+                          <path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5"></path>
+                        </svg>
+                        <svg
+                          aria-label="Next"
+                          class="size-4 fill-current text-slate-500"
+                          slot="next"
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                        >
+                          <path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5"></path>
+                        </svg>
+                        <calendar-month></calendar-month>
+                      </calendar-date>
+                    </div>
+                  </div>
                   <input
                     v-model="newRecord.date"
                     type="date"
-                    class="w-full px-8 py-5 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                    class="sr-only"
                     required
                   />
                 </div>
@@ -1080,7 +1121,7 @@
                       v-for="p in ['daily', 'weekly', 'monthly']"
                       :key="p"
                       type="button"
-                      @click="newBudget.period = p"
+                      @click="newBudget.period = p as 'daily' | 'weekly' | 'monthly'"
                       :class="[
                         'py-4 rounded-2xl text-[9px] font-bold uppercase tracking-widest transition-all',
                         newBudget.period === p
@@ -1291,9 +1332,43 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
+
+type TransactionType = "income" | "expense";
+
+type WalletItem = {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+};
+
+type CategoryItem = {
+  id: string;
+  name: string;
+  type: TransactionType;
+};
+
+type BudgetItem = {
+  id: string;
+  category_id: string;
+  amount: number;
+  spent: number;
+  period: "daily" | "weekly" | "monthly";
+};
+
+type LedgerItem = {
+  id: string;
+  category: string;
+  note: string;
+  amount: number;
+  type: TransactionType;
+  wallet: string;
+  date: string;
+};
 
 const mobileSidebarOpen = ref(false);
 const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
@@ -1302,9 +1377,13 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { listMyWallets, createMyWallet, listMyCategories, createMyCategory, deleteMyCategory, listMyBudgets, createMyBudget, deleteMyBudget, listMyTransactions, createMyTransaction } = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const loading = ref(false);
 const message = ref("");
+const pageLoading = ref(false);
+const datePickerOpen = ref(false);
+const datePickerContainerRef = ref<HTMLElement | null>(null);
 const confirmModalOpen = ref(false);
 const confirmTitle = ref("Confirm Action");
 const confirmDescription = ref("");
@@ -1339,11 +1418,7 @@ const handleConfirmAction = async () => {
 };
 
 // Wallets State & Logic
-const wallets = ref([
-  { id: 1, name: "Main Savings", balance: 120000, currency: "THB" },
-  { id: 2, name: "Cash on Hand", balance: 2500, currency: "THB" },
-  { id: 3, name: "Investment Port", balance: 20000, currency: "THB" },
-]);
+const wallets = ref<WalletItem[]>([]);
 
 const newWallet = reactive({
   name: "",
@@ -1359,13 +1434,28 @@ const headerTotalNetWorth = computed(() => {
   return totalNetWorthFromAPI.value ?? totalNetWorth.value;
 });
 
-onMounted(() => {
-  void refreshTotalNetWorth();
-});
+const normalizeErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "request-failed";
+};
+
+const isValidTwoDecimalAmount = (amount: number) => {
+  if (!Number.isFinite(amount)) {
+    return false;
+  }
+
+  return Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-8;
+};
+
+const normalizeTwoDecimalAmount = (amount: number) => {
+  return Math.round(amount * 100) / 100;
+};
 
 const walletDropdownItems = computed(() =>
   wallets.value.map((w) => ({
-    label: `${w.name} (฿${w.balance.toLocaleString()})`,
+    label: `${w.name} (฿${w.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })})`,
     value: w.id,
   })),
 );
@@ -1375,16 +1465,58 @@ const currencyDropdownItems = [
   { label: "USD - US Dollar", value: "USD" },
 ];
 
-const addWallet = () => {
-  if (!newWallet.name) return;
-  wallets.value.unshift({
-    id: Date.now(),
-    name: newWallet.name,
-    balance: newWallet.balance,
-    currency: newWallet.currency,
-  });
-  newWallet.name = "";
-  newWallet.balance = 0;
+const loadWallets = async () => {
+  const res = await listMyWallets({ page: 1, size: 200, isActive: true });
+  wallets.value = (res.items || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    balance: Number(item.balance || 0),
+    currency: item.currency || "THB",
+  }));
+};
+
+const addWallet = async () => {
+  const name = newWallet.name.trim();
+  const balance = Number(newWallet.balance || 0);
+
+  if (!name) {
+    message.value = "wallet-name-required";
+    return;
+  }
+
+  if (balance < 0 || !Number.isFinite(balance)) {
+    message.value = "wallet-balance-must-be-non-negative";
+    return;
+  }
+
+  if (!isValidTwoDecimalAmount(balance)) {
+    message.value = "wallet-balance-must-have-two-decimals";
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const res = await createMyWallet({
+      name,
+      balance: normalizeTwoDecimalAmount(balance),
+      currency: newWallet.currency || "THB",
+    });
+    wallets.value.unshift({
+      id: res.data.id,
+      name: res.data.name,
+      balance: Number(res.data.balance || 0),
+      currency: res.data.currency || "THB",
+    });
+    newWallet.name = "";
+    newWallet.balance = 0;
+    newWallet.currency = "THB";
+    await refreshTotalNetWorth();
+    message.value = "Wallet Archived";
+  } catch (error) {
+    message.value = normalizeErrorMessage(error);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const confirmAddWallet = () => {
@@ -1392,22 +1524,12 @@ const confirmAddWallet = () => {
 };
 
 // Categories State & Logic
-const categories = ref([
-  { id: 1, name: "Food & Drink", type: "expense" },
-  { id: 2, name: "Salary", type: "income" },
-  { id: 3, name: "Transport", type: "expense" },
-  { id: 4, name: "Freelance", type: "income" },
-  { id: 5, name: "Subscription", type: "expense" },
-  { id: 6, name: "Health", type: "expense" },
-  { id: 7, name: "Dining Out", type: "expense" },
-  { id: 8, name: "Entertainment", type: "expense" },
-  { id: 9, name: "Shopping", type: "expense" },
-]);
+const categories = ref<CategoryItem[]>([]);
 
 const categoryFilter = ref("all");
 const newCategory = reactive({
   name: "",
-  type: "expense",
+  type: "expense" as TransactionType,
 });
 
 const filteredCategories = computed(() => {
@@ -1421,23 +1543,58 @@ const recordCategoryDropdownItems = computed(() =>
     .map((cat) => ({ label: cat.name, value: cat.id })),
 );
 
-const getCategoryName = (id: number) => {
+const getCategoryName = (id: string) => {
   const cat = categories.value.find((c) => c.id === id);
   return cat ? cat.name : "Unknown";
 };
 
-const addCategory = () => {
-  if (!newCategory.name) return;
-  categories.value.unshift({
-    id: Date.now(),
-    name: newCategory.name,
-    type: newCategory.type,
-  });
-  newCategory.name = "";
+const loadCategories = async () => {
+  const res = await listMyCategories({ page: 1, size: 300 });
+  categories.value = (res.items || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    type: item.type,
+  }));
 };
 
-const removeCategory = (id: number) => {
-  categories.value = categories.value.filter((cat) => cat.id !== id);
+const addCategory = async () => {
+  const name = newCategory.name.trim();
+  if (!name) {
+    message.value = "category-name-required";
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const res = await createMyCategory({
+      name,
+      type: newCategory.type,
+    });
+    categories.value.unshift({
+      id: res.data.id,
+      name: res.data.name,
+      type: res.data.type,
+    });
+    newCategory.name = "";
+    message.value = "Category Archived";
+  } catch (error) {
+    message.value = normalizeErrorMessage(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const removeCategory = async (id: string) => {
+  loading.value = true;
+  try {
+    await deleteMyCategory(id);
+    categories.value = categories.value.filter((cat) => cat.id !== id);
+    message.value = "Category Removed";
+  } catch (error) {
+    message.value = normalizeErrorMessage(error);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const confirmAddCategory = () => {
@@ -1449,24 +1606,20 @@ const confirmAddCategory = () => {
   );
 };
 
-const confirmRemoveCategory = (id: number) => {
+const confirmRemoveCategory = (id: string) => {
   openConfirmModal("Confirm Delete", "Delete this category?", "Delete", () =>
     removeCategory(id),
   );
 };
 
 // Budgets State & Logic
-const budgets = ref([
-  { id: 1, category_id: 7, amount: 5000, spent: 4250, period: "monthly" },
-  { id: 2, category_id: 8, amount: 2000, spent: 600, period: "monthly" },
-  { id: 3, category_id: 9, amount: 3000, spent: 2760, period: "monthly" },
-]);
+const budgets = ref<BudgetItem[]>([]);
 
 const budgetPeriodFilter = ref("all");
 const newBudget = reactive({
   category_id: "",
   amount: 0,
-  period: "monthly",
+  period: "monthly" as "daily" | "weekly" | "monthly",
 });
 
 const filteredBudgets = computed(() => {
@@ -1480,99 +1633,124 @@ const budgetCategoryDropdownItems = computed(() =>
     .map((cat) => ({ label: cat.name, value: cat.id })),
 );
 
-const addBudget = () => {
-  if (!newBudget.category_id || !newBudget.amount) return;
-  budgets.value.unshift({
-    id: Date.now(),
-    category_id: Number(newBudget.category_id),
-    amount: newBudget.amount,
-    spent: 0,
-    period: newBudget.period,
-  });
-  newBudget.category_id = "";
-  newBudget.amount = 0;
+const loadBudgets = async () => {
+  const period = budgetPeriodFilter.value === "all" ? undefined : (budgetPeriodFilter.value as "daily" | "weekly" | "monthly");
+  const res = await listMyBudgets({ page: 1, size: 300, period });
+  budgets.value = (res.items || []).map((item) => ({
+    id: item.id,
+    category_id: item.category_id || "",
+    amount: Number(item.amount || 0),
+    spent: Number(item.spent_amount || 0),
+    period: item.period,
+  }));
 };
 
-const removeBudget = (id: number) => {
-  budgets.value = budgets.value.filter((budget) => budget.id !== id);
+const addBudget = async () => {
+  const amount = Number(newBudget.amount || 0);
+  if (!newBudget.category_id) {
+    message.value = "budget-category-required";
+    return;
+  }
+  if (!Number.isFinite(amount) || amount < 0) {
+    message.value = "budget-amount-must-be-non-negative";
+    return;
+  }
+  if (!isValidTwoDecimalAmount(amount)) {
+    message.value = "budget-amount-must-have-two-decimals";
+    return;
+  }
+
+  loading.value = true;
+  try {
+    const res = await createMyBudget({
+      category_id: newBudget.category_id,
+      amount: normalizeTwoDecimalAmount(amount),
+      period: newBudget.period,
+    });
+    budgets.value.unshift({
+      id: res.data.id,
+      category_id: res.data.category_id || newBudget.category_id,
+      amount: Number(res.data.amount || 0),
+      spent: Number(res.data.spent_amount || 0),
+      period: res.data.period,
+    });
+    newBudget.category_id = "";
+    newBudget.amount = 0;
+    message.value = "Budget Archived";
+  } catch (error) {
+    message.value = normalizeErrorMessage(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const removeBudget = async (id: string) => {
+  loading.value = true;
+  try {
+    await deleteMyBudget(id);
+    budgets.value = budgets.value.filter((budget) => budget.id !== id);
+    message.value = "Budget Terminated";
+  } catch (error) {
+    message.value = normalizeErrorMessage(error);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const confirmAddBudget = () => {
   openConfirmModal("Confirm Save", "Save this budget?", "Save", addBudget);
 };
 
-const confirmRemoveBudget = (id: number) => {
+const confirmRemoveBudget = (id: string) => {
   openConfirmModal("Confirm Delete", "Delete this budget?", "Delete", () =>
     removeBudget(id),
   );
 };
 
 // Transaction Ledger (History) State & Logic
-const allTransactions = ref([
-  {
-    id: 1,
-    category: "Food & Drink",
-    note: "Starbucks Coffee",
-    amount: 145,
-    type: "expense",
-    wallet: "Cash",
-    date: "2026-04-01",
-  },
-  {
-    id: 2,
-    category: "Salary",
-    note: "Monthly Revenue",
-    amount: 45000,
-    type: "income",
-    wallet: "Main Savings",
-    date: "2026-03-31",
-  },
-  {
-    id: 3,
-    category: "Transport",
-    note: "Grab Ride",
-    amount: 220,
-    type: "expense",
-    wallet: "Main Savings",
-    date: "2026-03-30",
-  },
-  {
-    id: 4,
-    category: "Shopping",
-    note: "Uniqlo Store",
-    amount: 1290,
-    type: "expense",
-    wallet: "Main Savings",
-    date: "2026-03-29",
-  },
-  {
-    id: 5,
-    category: "Food & Drink",
-    note: "Dinner at Shabu",
-    amount: 850,
-    type: "expense",
-    wallet: "Cash",
-    date: "2026-03-28",
-  },
-  {
-    id: 6,
-    category: "Freelance",
-    note: "Logo Design Project",
-    amount: 5000,
-    type: "income",
-    wallet: "Investment Port",
-    date: "2026-03-27",
-  },
-]);
+const allTransactions = ref<LedgerItem[]>([]);
 
 const recentTransactionsSnapshot = computed(() =>
   allTransactions.value.slice(0, 3),
 );
 
+const formatTransactionDate = (value: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  const normalized = value.includes("T") ? value : `${value}T00:00:00`;
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  const day = String(parsed.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const loadTransactions = async () => {
+  const res = await listMyTransactions({ page: 1, size: 300 });
+  const walletMap = new Map(wallets.value.map((item) => [item.id, item.name]));
+  const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
+
+  allTransactions.value = (res.items || []).map((item) => ({
+    id: item.id,
+    category: item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized",
+    note: item.note || "",
+    amount: Number(item.amount || 0),
+    type: item.type,
+    wallet: item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet",
+    date: formatTransactionDate(item.transaction_date),
+  }));
+};
+
 // New Entry State & Logic
 const newRecord = reactive({
-  type: "expense",
-  amount: null,
+  type: "expense" as TransactionType,
+  amount: null as number | null,
   wallet_id: "",
   category_id: "",
   date: new Date().toISOString().split("T")[0],
@@ -1583,57 +1761,47 @@ const submitTransaction = async () => {
   if (!newRecord.amount || !newRecord.wallet_id || !newRecord.category_id)
     return;
 
-  loading.value = true;
-
-  // Simulate API Call
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-
-  const selectedWallet = wallets.value.find(
-    (w) => w.id === Number(newRecord.wallet_id),
-  );
-    const selectedCategory = categories.value.find(
-        (c) => c.id === Number(newRecord.category_id),
-    );
-
-  if (selectedWallet && selectedCategory) {
-    // Update Wallet Balance
-    if (newRecord.type === "expense") {
-      selectedWallet.balance -= newRecord.amount;
-    } else {
-      selectedWallet.balance += newRecord.amount;
-    }
-
-    // Add to History
-    allTransactions.value.unshift({
-      id: Date.now(),
-      category: selectedCategory.name,
-      note: newRecord.note,
-      amount: newRecord.amount,
-      type: newRecord.type,
-      wallet: selectedWallet.name,
-      date: newRecord.date,
-    });
-
-    // Check and update Budget if it's an expense
-    if (newRecord.type === "expense") {
-      const budget = budgets.value.find(
-        (b) => b.category_id === selectedCategory.id,
-      );
-      if (budget) budget.spent += newRecord.amount;
-    }
+  if (newRecord.amount < 0 || !Number.isFinite(newRecord.amount)) {
+    message.value = "transaction-amount-must-be-non-negative";
+    return;
   }
 
-  loading.value = false;
-  message.value = "Entry Archived Successfully";
+  if (!isValidTwoDecimalAmount(newRecord.amount)) {
+    message.value = "transaction-amount-must-have-two-decimals";
+    return;
+  }
 
-  // Reset Form
-  newRecord.amount = null;
-  newRecord.note = "";
+  loading.value = true;
+  try {
+    await createMyTransaction({
+      wallet_id: newRecord.wallet_id,
+      category_id: newRecord.category_id,
+      amount: normalizeTwoDecimalAmount(newRecord.amount),
+      type: newRecord.type,
+      transaction_date: newRecord.date,
+      note: newRecord.note.trim(),
+    });
 
-  setTimeout(() => {
-    message.value = "";
-    goTo("dashboard");
-  }, 2000);
+    await Promise.all([
+      loadWallets(),
+      loadBudgets(),
+      loadTransactions(),
+      refreshTotalNetWorth(),
+    ]);
+
+    message.value = "Entry Archived Successfully";
+    newRecord.amount = null;
+    newRecord.note = "";
+
+    setTimeout(() => {
+      message.value = "";
+      goTo("dashboard");
+    }, 2000);
+  } catch (error) {
+    message.value = normalizeErrorMessage(error);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const confirmSubmitTransaction = () => {
@@ -1658,6 +1826,69 @@ const confirmUpdateProfile = () => {
     },
   );
 };
+
+const onCalendarDateChange = (event: Event) => {
+  const target = event.target as { value?: string } | null;
+  if (target?.value) {
+    newRecord.date = target.value;
+    datePickerOpen.value = false;
+  }
+};
+
+const onDocumentClick = (event: MouseEvent) => {
+  const container = datePickerContainerRef.value;
+  const target = event.target as Node | null;
+  if (container && target && !container.contains(target)) {
+    datePickerOpen.value = false;
+  }
+};
+
+const formatDateDisplay = (value: string) => {
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(parsed);
+};
+
+const calendarButtonLabel = computed(() => {
+  if (!newRecord.date) {
+    return "เลือกวันที่";
+  }
+
+  return formatDateDisplay(newRecord.date);
+});
+
+const loadInitialData = async () => {
+  pageLoading.value = true;
+  try {
+    await Promise.all([loadWallets(), loadCategories()]);
+    await Promise.all([loadBudgets(), loadTransactions(), refreshTotalNetWorth()]);
+  } catch (error) {
+    message.value = normalizeErrorMessage(error);
+  } finally {
+    pageLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  if (typeof window !== "undefined") {
+    void import("cally");
+    document.addEventListener("click", onDocumentClick);
+  }
+  void loadInitialData();
+});
+
+onUnmounted(() => {
+  if (typeof window !== "undefined") {
+    document.removeEventListener("click", onDocumentClick);
+  }
+});
 
 // Pagination State
 const currentPage = ref(1);
@@ -1688,7 +1919,7 @@ const activeBudgets = computed(() => {
   return budgets.value.map((b) => ({
     id: b.id,
     category: getCategoryName(b.category_id),
-    percent: Math.min(Math.round((b.spent / b.amount) * 100), 100),
+    percent: b.amount > 0 ? Math.min(Math.round((b.spent / b.amount) * 100), 100) : 0,
   }));
 });
 

@@ -208,6 +208,8 @@
 
     <!-- Main Content Area -->
     <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
+      <AppLoading v-if="pageLoading" overlay label="Loading data..." />
+
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -467,17 +469,35 @@
             >
               <div class="flex space-x-8">
                 <button
-                  class="text-[10px] font-bold text-slate-900 uppercase tracking-widest border-b-2 border-slate-900 pb-1"
+                  @click="historyTypeFilter = 'all'"
+                  :class="[
+                    'text-[10px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-colors',
+                    historyTypeFilter === 'all'
+                      ? 'text-slate-900 border-slate-900'
+                      : 'text-slate-400 border-transparent hover:text-slate-900',
+                  ]"
                 >
                   All Activity
                 </button>
                 <button
-                  class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors pb-1"
+                  @click="historyTypeFilter = 'income'"
+                  :class="[
+                    'text-[10px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-colors',
+                    historyTypeFilter === 'income'
+                      ? 'text-slate-900 border-slate-900'
+                      : 'text-slate-400 border-transparent hover:text-slate-900',
+                  ]"
                 >
                   Income
                 </button>
                 <button
-                  class="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors pb-1"
+                  @click="historyTypeFilter = 'expense'"
+                  :class="[
+                    'text-[10px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-colors',
+                    historyTypeFilter === 'expense'
+                      ? 'text-slate-900 border-slate-900'
+                      : 'text-slate-400 border-transparent hover:text-slate-900',
+                  ]"
                 >
                   Expenses
                 </button>
@@ -485,9 +505,7 @@
               <div
                 class="text-[10px] font-bold text-slate-300 uppercase tracking-widest"
               >
-                Displaying {{ startIndex + 1 }}-{{
-                  Math.min(endIndex, totalTransactions)
-                }}
+                Displaying {{ displayStart }}-{{ displayEnd }}
                 of {{ totalTransactions }} Records
               </div>
             </div>
@@ -501,9 +519,9 @@
               >
                 <div class="flex items-center space-x-6">
                   <div
-                    class="text-[10px] font-bold text-slate-300 uppercase tracking-tighter w-16"
+                    class="min-w-[120px] whitespace-nowrap text-[10px] font-bold text-slate-300 tracking-tighter"
                   >
-                    {{ item.date.split(",")[0] }}
+                    {{ item.date }}
                   </div>
                   <div
                     class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500"
@@ -542,6 +560,20 @@
                   >
                     Confirmed
                   </p>
+                  <div class="mt-2 flex items-center justify-end gap-3">
+                    <button
+                      class="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700"
+                      @click="openEditTransaction(item)"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      class="text-[9px] font-bold uppercase tracking-widest text-slate-300 hover:text-rose-500"
+                      @click="requestDeleteTransaction(item)"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -622,13 +654,197 @@
       @confirm="confirmLogout"
       @cancel="cancelLogout"
     />
+
+    <AppConfirmModal
+      :open="deleteConfirmOpen"
+      title="Confirm Delete"
+      :description="deleteConfirmDescription"
+      confirm-label="Delete"
+      cancel-label="Cancel"
+      @update:open="cancelDeleteTransaction"
+      @confirm="confirmDeleteTransaction"
+      @cancel="cancelDeleteTransaction"
+    />
+
+    <Transition name="fade">
+      <div
+        v-if="editModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+        @click="closeEditModal"
+      >
+        <div
+          class="w-full max-w-xl rounded-3xl border border-slate-100 bg-white p-8 shadow-2xl"
+          @click.stop
+        >
+          <h4 class="text-sm font-bold uppercase tracking-widest text-slate-900">
+            Edit Transaction
+          </h4>
+
+          <div class="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="space-y-2">
+              <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Type</label>
+              <AppDropdown
+                v-model="editTransaction.type"
+                label="Select Type"
+                :items="editTypeDropdownItems"
+                unstyled
+                trigger-class="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                menu-class="w-full"
+              />
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Amount</label>
+              <input
+                v-model.number="editTransaction.amount"
+                type="number"
+                step="0.01"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+              />
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Wallet</label>
+              <AppDropdown
+                v-model="editTransaction.walletID"
+                label="Select Wallet"
+                :items="editWalletDropdownItems"
+                unstyled
+                trigger-class="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                menu-class="w-full"
+              />
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Category</label>
+              <AppDropdown
+                v-model="editTransaction.categoryID"
+                label="Select Category"
+                :items="editCategoryDropdownItems"
+                unstyled
+                trigger-class="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+                menu-class="w-full"
+              />
+            </div>
+
+            <div class="space-y-2 md:col-span-2">
+              <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Transaction Date</label>
+              <div ref="editDatePickerContainerRef" class="relative">
+                <button
+                  type="button"
+                  class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm text-slate-700"
+                  @click="editDatePickerOpen = !editDatePickerOpen"
+                >
+                  {{ editDateButtonLabel }}
+                </button>
+                <div
+                  v-if="editDatePickerOpen"
+                  class="absolute bottom-full left-0 z-50 mb-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl"
+                >
+                  <calendar-date
+                    class="cally block rounded-xl border border-slate-200 bg-slate-50 p-2"
+                    :value="editTransaction.transactionDate"
+                    @change="onEditCalendarDateChange"
+                  >
+                    <svg
+                      aria-label="Previous"
+                      class="size-4 fill-current text-slate-500"
+                      slot="previous"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                    >
+                      <path fill="currentColor" d="M15.75 19.5 8.25 12l7.5-7.5"></path>
+                    </svg>
+                    <svg
+                      aria-label="Next"
+                      class="size-4 fill-current text-slate-500"
+                      slot="next"
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                    >
+                      <path fill="currentColor" d="m8.25 4.5 7.5 7.5-7.5 7.5"></path>
+                    </svg>
+                    <calendar-month></calendar-month>
+                  </calendar-date>
+                </div>
+              </div>
+              <input v-model="editTransaction.transactionDate" type="date" class="sr-only" />
+            </div>
+
+            <div class="space-y-2 md:col-span-2">
+              <label class="text-[9px] font-bold uppercase tracking-widest text-slate-400">Note</label>
+              <input
+                v-model="editTransaction.note"
+                type="text"
+                class="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+              />
+            </div>
+          </div>
+
+          <p v-if="actionError" class="mt-4 text-xs font-semibold text-rose-500">
+            {{ actionError }}
+          </p>
+
+          <div class="mt-8 flex justify-end gap-3">
+            <button
+              class="rounded-xl border border-slate-200 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:bg-slate-50"
+              @click="closeEditModal"
+            >
+              Cancel
+            </button>
+            <button
+              class="rounded-xl bg-slate-900 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-slate-800 disabled:opacity-50"
+              :disabled="actionLoading"
+              @click="saveEditedTransaction"
+            >
+              {{ actionLoading ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
+import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
+
+type TransactionType = "income" | "expense";
+
+type WalletItem = {
+  id: string;
+  name: string;
+  balance: number;
+};
+
+type CategoryItem = {
+  id: string;
+  name: string;
+  type: TransactionType;
+};
+
+type BudgetItem = {
+  id: string;
+  category_id: string;
+  amount: number;
+  spent: number;
+};
+
+type LedgerItem = {
+  id: string;
+  walletID: string;
+  categoryID: string;
+  transactionDate: string;
+  category: string;
+  note: string;
+  amount: number;
+  type: TransactionType;
+  wallet: string;
+  date: string;
+};
 
 const mobileSidebarOpen = ref(false);
 const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
@@ -637,179 +853,149 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { listMyWallets, listMyCategories, listMyBudgets, listMyTransactions, updateMyTransaction, deleteMyTransaction } = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 
-// Mock Data for Dashboard
-const wallets = [
-  { id: 1, name: "Main Savings", balance: 120000 },
-  { id: 2, name: "Cash on Hand", balance: 2500 },
-  { id: 3, name: "Investment Port", balance: 20000 },
-];
+const wallets = ref<WalletItem[]>([]);
+const categories = ref<CategoryItem[]>([]);
+const budgets = ref<BudgetItem[]>([]);
+const allTransactions = ref<LedgerItem[]>([]);
+const historyTypeFilter = ref<"all" | TransactionType>("all");
+const pageLoading = ref(false);
+const actionLoading = ref(false);
+const actionError = ref("");
+const editModalOpen = ref(false);
+const deleteConfirmOpen = ref(false);
+const deleteConfirmDescription = ref("Delete this transaction?");
+const deleteTargetID = ref("");
+const editDatePickerOpen = ref(false);
+const editDatePickerContainerRef = ref<HTMLElement | null>(null);
+
+const editTransaction = reactive({
+  id: "",
+  walletID: "",
+  categoryID: "",
+  amount: 0,
+  type: "expense" as TransactionType,
+  transactionDate: "",
+  note: "",
+});
 
 const headerTotalNetWorth = computed(() => {
-  const fallback = wallets.reduce((acc, curr) => acc + curr.balance, 0);
+  const fallback = wallets.value.reduce((acc, curr) => acc + curr.balance, 0);
   return totalNetWorthFromAPI.value ?? fallback;
 });
 
-onMounted(() => {
-  void refreshTotalNetWorth();
+const normalizeErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "request-failed";
+};
+
+const formatDate = (value: string | null) => {
+  if (!value) {
+    return "-";
+  }
+  const normalized = value.includes("T") ? value : `${value}T00:00:00`;
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
+const normalizeDateInput = (value: string | null) => {
+  if (!value) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return value;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return date.toISOString().split("T")[0];
+};
+
+const formatDateDisplay = (value: string) => {
+  const parsed = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("th-TH", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(parsed);
+};
+
+const editDateButtonLabel = computed(() => {
+  if (!editTransaction.transactionDate) {
+    return "เลือกวันที่";
+  }
+
+  return formatDateDisplay(editTransaction.transactionDate);
 });
 
-// Extended Mock Data for History & Pagination
-const allTransactions = [
-  {
-    id: 1,
-    category: "Food & Drink",
-    note: "Starbucks Coffee",
-    amount: 145,
-    type: "expense",
-    wallet: "Cash",
-    date: "Today, 14:20",
-  },
-  {
-    id: 2,
-    category: "Salary",
-    note: "Monthly Revenue",
-    amount: 45000,
-    type: "income",
-    wallet: "Savings",
-    date: "Yesterday",
-  },
-  {
-    id: 3,
-    category: "Transport",
-    note: "Grab Ride",
-    amount: 220,
-    type: "expense",
-    wallet: "Savings",
-    date: "22 Oct",
-  },
-  {
-    id: 4,
-    category: "Shopping",
-    note: "Uniqlo Store",
-    amount: 1290,
-    type: "expense",
-    wallet: "Savings",
-    date: "21 Oct",
-  },
-  {
-    id: 5,
-    category: "Food & Drink",
-    note: "Dinner at Shabu",
-    amount: 850,
-    type: "expense",
-    wallet: "Cash",
-    date: "20 Oct",
-  },
-  {
-    id: 6,
-    category: "Freelance",
-    note: "Logo Design Project",
-    amount: 5000,
-    type: "income",
-    wallet: "Investment",
-    date: "19 Oct",
-  },
-  {
-    id: 7,
-    category: "Bills",
-    note: "Electric Bill",
-    amount: 1850,
-    type: "expense",
-    wallet: "Savings",
-    date: "18 Oct",
-  },
-  {
-    id: 8,
-    category: "Transport",
-    note: "Fuel Refill",
-    amount: 1200,
-    type: "expense",
-    wallet: "Cash",
-    date: "17 Oct",
-  },
-  {
-    id: 9,
-    category: "Subscription",
-    note: "Netflix Monthly",
-    amount: 419,
-    type: "expense",
-    wallet: "Savings",
-    date: "16 Oct",
-  },
-  {
-    id: 10,
-    category: "Food & Drink",
-    note: "Lunch Box",
-    amount: 65,
-    type: "expense",
-    wallet: "Cash",
-    date: "15 Oct",
-  },
-  {
-    id: 11,
-    category: "Health",
-    note: "Pharmacy",
-    amount: 350,
-    type: "expense",
-    wallet: "Cash",
-    date: "14 Oct",
-  },
-  {
-    id: 12,
-    category: "Salary",
-    note: "Bonus Pay",
-    amount: 15000,
-    type: "income",
-    wallet: "Savings",
-    date: "13 Oct",
-  },
-  {
-    id: 13,
-    category: "Shopping",
-    note: "Amazon Purchase",
-    amount: 2400,
-    type: "expense",
-    wallet: "Savings",
-    date: "12 Oct",
-  },
-  {
-    id: 14,
-    category: "Entertainment",
-    note: "Cinema Tickets",
-    amount: 500,
-    type: "expense",
-    wallet: "Cash",
-    date: "11 Oct",
-  },
-  {
-    id: 15,
-    category: "Investment",
-    note: "Stock Dividend",
-    amount: 1200,
-    type: "income",
-    wallet: "Investment",
-    date: "10 Oct",
-  },
+const recentTransactionsSnapshot = computed(() => allTransactions.value.slice(0, 3));
+
+const filteredTransactions = computed(() => {
+  if (historyTypeFilter.value === "all") {
+    return allTransactions.value;
+  }
+  return allTransactions.value.filter((item) => item.type === historyTypeFilter.value);
+});
+
+const editCategoryOptions = computed(() => {
+  return categories.value.filter((item) => item.type === editTransaction.type);
+});
+
+const editTypeDropdownItems = [
+  { label: "Expense", value: "expense" },
+  { label: "Income", value: "income" },
 ];
 
-const recentTransactionsSnapshot = computed(() => allTransactions.slice(0, 3));
+const editWalletDropdownItems = computed(() => {
+  return wallets.value.map((wallet) => ({
+    label: wallet.name,
+    value: wallet.id,
+  }));
+});
+
+const editCategoryDropdownItems = computed(() => {
+  return editCategoryOptions.value.map((category) => ({
+    label: category.name,
+    value: category.id,
+  }));
+});
 
 // Pagination State
 const currentPage = ref(1);
 const itemsPerPage = 6;
 
-const totalTransactions = computed(() => allTransactions.length);
+const totalTransactions = computed(() => filteredTransactions.value.length);
 const totalPages = computed(() =>
-  Math.ceil(totalTransactions.value / itemsPerPage),
+  Math.max(1, Math.ceil(totalTransactions.value / itemsPerPage)),
 );
 
 const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage);
 const endIndex = computed(() => startIndex.value + itemsPerPage);
+const displayStart = computed(() => (totalTransactions.value === 0 ? 0 : startIndex.value + 1));
+const displayEnd = computed(() => Math.min(endIndex.value, totalTransactions.value));
 
 const paginatedTransactions = computed(() => {
-  return allTransactions.slice(startIndex.value, endIndex.value);
+  return filteredTransactions.value.slice(startIndex.value, endIndex.value);
 });
 
 const prevPage = () => {
@@ -820,11 +1006,212 @@ const nextPage = () => {
   if (currentPage.value < totalPages.value) currentPage.value++;
 };
 
-const activeBudgets = [
-  { id: 1, category: "Dining Out", percent: 85 },
-  { id: 2, category: "Entertainment", percent: 30 },
-  { id: 3, category: "Shopping", percent: 92 },
-];
+const activeBudgets = computed(() => {
+  const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
+  return budgets.value.map((budget) => {
+    const percent = budget.amount > 0 ? Math.min(Math.round((budget.spent / budget.amount) * 100), 100) : 0;
+    return {
+      id: budget.id,
+      category: categoryMap.get(budget.category_id) || "Unknown",
+      percent,
+    };
+  });
+});
+
+const isValidTwoDecimalAmount = (amount: number) => {
+  if (!Number.isFinite(amount)) {
+    return false;
+  }
+
+  return Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-8;
+};
+
+const normalizeTwoDecimalAmount = (amount: number) => {
+  return Math.round(amount * 100) / 100;
+};
+
+const loadWallets = async () => {
+  const res = await listMyWallets({ page: 1, size: 200, isActive: true });
+  wallets.value = (res.items || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    balance: Number(item.balance || 0),
+  }));
+};
+
+const loadCategories = async () => {
+  const res = await listMyCategories({ page: 1, size: 300 });
+  categories.value = (res.items || []).map((item) => ({
+    id: item.id,
+    name: item.name,
+    type: item.type,
+  }));
+};
+
+const loadBudgets = async () => {
+  const res = await listMyBudgets({ page: 1, size: 300 });
+  budgets.value = (res.items || []).map((item) => ({
+    id: item.id,
+    category_id: item.category_id || "",
+    amount: Number(item.amount || 0),
+    spent: Number(item.spent_amount || 0),
+  }));
+};
+
+const loadTransactions = async () => {
+  const res = await listMyTransactions({ page: 1, size: 500 });
+  const walletMap = new Map(wallets.value.map((item) => [item.id, item.name]));
+  const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
+
+  allTransactions.value = (res.items || []).map((item) => ({
+    id: item.id,
+    walletID: item.wallet_id || "",
+    categoryID: item.category_id || "",
+    transactionDate: normalizeDateInput(item.transaction_date),
+    category: item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized",
+    note: item.note || "",
+    amount: Number(item.amount || 0),
+    type: item.type,
+    wallet: item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet",
+    date: formatDate(item.transaction_date),
+  }));
+};
+
+const loadInitialData = async () => {
+  pageLoading.value = true;
+  try {
+    await Promise.all([loadWallets(), loadCategories(), loadBudgets()]);
+    await Promise.all([loadTransactions(), refreshTotalNetWorth()]);
+  } catch (error) {
+    console.error("transaction-ledger-load-failed", normalizeErrorMessage(error));
+  } finally {
+    pageLoading.value = false;
+  }
+};
+
+const openEditTransaction = (item: LedgerItem) => {
+  actionError.value = "";
+  editTransaction.id = item.id;
+  editTransaction.walletID = item.walletID;
+  editTransaction.categoryID = item.categoryID;
+  editTransaction.amount = item.amount;
+  editTransaction.type = item.type;
+  editTransaction.transactionDate = item.transactionDate || new Date().toISOString().split("T")[0];
+  editTransaction.note = item.note || "";
+  editDatePickerOpen.value = false;
+  editModalOpen.value = true;
+};
+
+const closeEditModal = () => {
+  editModalOpen.value = false;
+  editDatePickerOpen.value = false;
+};
+
+const requestDeleteTransaction = (item: LedgerItem) => {
+  deleteTargetID.value = item.id;
+  deleteConfirmDescription.value = `Delete transaction ${item.note || item.category}?`;
+  deleteConfirmOpen.value = true;
+};
+
+const onEditCalendarDateChange = (event: Event) => {
+  const target = event.target as { value?: string } | null;
+  if (target?.value) {
+    editTransaction.transactionDate = target.value;
+    editDatePickerOpen.value = false;
+  }
+};
+
+const onDocumentClick = (event: MouseEvent) => {
+  const container = editDatePickerContainerRef.value;
+  const target = event.target as Node | null;
+  if (container && target && !container.contains(target)) {
+    editDatePickerOpen.value = false;
+  }
+};
+
+const cancelDeleteTransaction = () => {
+  deleteConfirmOpen.value = false;
+  deleteTargetID.value = "";
+};
+
+const confirmDeleteTransaction = async () => {
+  const transactionID = deleteTargetID.value;
+  if (!transactionID) {
+    cancelDeleteTransaction();
+    return;
+  }
+
+  actionLoading.value = true;
+  actionError.value = "";
+  try {
+    await deleteMyTransaction(transactionID);
+    await Promise.all([loadWallets(), loadBudgets(), loadTransactions(), refreshTotalNetWorth()]);
+    cancelDeleteTransaction();
+  } catch (error) {
+    actionError.value = normalizeErrorMessage(error);
+  } finally {
+    actionLoading.value = false;
+  }
+};
+
+const saveEditedTransaction = async () => {
+  if (!editTransaction.id) {
+    return;
+  }
+
+  if (!editTransaction.walletID || !editTransaction.categoryID) {
+    actionError.value = "wallet-and-category-required";
+    return;
+  }
+
+  if (!Number.isFinite(editTransaction.amount) || editTransaction.amount < 0) {
+    actionError.value = "transaction-amount-must-be-non-negative";
+    return;
+  }
+
+  if (!isValidTwoDecimalAmount(editTransaction.amount)) {
+    actionError.value = "transaction-amount-must-have-two-decimals";
+    return;
+  }
+
+  actionLoading.value = true;
+  actionError.value = "";
+  try {
+    await updateMyTransaction(editTransaction.id, {
+      wallet_id: editTransaction.walletID,
+      category_id: editTransaction.categoryID,
+      amount: normalizeTwoDecimalAmount(editTransaction.amount),
+      type: editTransaction.type,
+      transaction_date: editTransaction.transactionDate,
+      note: editTransaction.note.trim(),
+    });
+
+    await Promise.all([loadWallets(), loadBudgets(), loadTransactions(), refreshTotalNetWorth()]);
+    closeEditModal();
+  } catch (error) {
+    actionError.value = normalizeErrorMessage(error);
+  } finally {
+    actionLoading.value = false;
+  }
+};
+
+watch(historyTypeFilter, () => {
+  currentPage.value = 1;
+});
+
+onMounted(() => {
+  if (typeof window !== "undefined") {
+    void import("cally");
+    document.addEventListener("click", onDocumentClick);
+  }
+  void loadInitialData();
+});
+
+onUnmounted(() => {
+  if (typeof window !== "undefined") {
+    document.removeEventListener("click", onDocumentClick);
+  }
+});
 
 const pageTitle = computed(() => {
   switch (currentPath.value) {

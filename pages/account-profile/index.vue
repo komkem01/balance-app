@@ -210,6 +210,8 @@
 
     <!-- Main Content Area -->
     <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
+      <AppLoading v-if="pageLoading" overlay label="Loading data..." />
+
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -1507,6 +1509,7 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
   },
 });
 const loading = ref(false);
+const pageLoading = ref(false);
 const passwordChanging = ref(false);
 const accountDeactivating = ref(false);
 const message = ref("");
@@ -1643,6 +1646,7 @@ const passwordForm = reactive({
 });
 
 const loadMeProfile = async () => {
+  pageLoading.value = true;
   try {
     const res = await authApi.getMe();
     const me = res.data as MeData;
@@ -1657,6 +1661,8 @@ const loadMeProfile = async () => {
     setTimeout(() => {
       message.value = "";
     }, 2000);
+  } finally {
+    pageLoading.value = false;
   }
 };
 

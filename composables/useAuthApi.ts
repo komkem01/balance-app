@@ -198,6 +198,7 @@ type UpdateCategoryRequest = {
 };
 
 type BudgetPeriod = "daily" | "weekly" | "monthly";
+type TransactionType = "income" | "expense";
 
 type BudgetItemResponse = {
   id: string;
@@ -240,6 +241,47 @@ type RecalculateAllBudgetsResponse = {
   updated_date_ranges: number;
   updated_spent_amount: number;
   recalculated_at: string;
+};
+
+type TransactionItemResponse = {
+  id: string;
+  wallet_id: string | null;
+  category_id: string | null;
+  amount: number;
+  type: TransactionType;
+  transaction_date: string | null;
+  note: string;
+  image_url: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type TransactionListParams = {
+  page?: number;
+  size?: number;
+  walletID?: string;
+  categoryID?: string;
+  type?: TransactionType;
+};
+
+type CreateTransactionRequest = {
+  wallet_id?: string;
+  category_id?: string;
+  amount: number;
+  type: TransactionType;
+  transaction_date?: string;
+  note?: string;
+  image_url?: string;
+};
+
+type UpdateTransactionRequest = {
+  wallet_id?: string;
+  category_id?: string;
+  amount?: number;
+  type?: TransactionType;
+  transaction_date?: string;
+  note?: string;
+  image_url?: string;
 };
 
 const ACCESS_TOKEN_KEY = "balance_app_access_token";
@@ -699,6 +741,55 @@ export const useAuthApi = () => {
     });
   };
 
+  const listMyTransactions = async (params?: TransactionListParams) => {
+    const page = params?.page || 1;
+    const size = params?.size || 200;
+    const query = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+
+    if (params?.walletID) {
+      query.set("wallet_id", params.walletID);
+    }
+
+    if (params?.categoryID) {
+      query.set("category_id", params.categoryID);
+    }
+
+    if (params?.type) {
+      query.set("type", params.type);
+    }
+
+    const res = await requestWithAuth<TransactionItemResponse[]>(`/balances/transactions?${query.toString()}`, {
+      method: "GET",
+    });
+
+    return {
+      items: res.data || [],
+    };
+  };
+
+  const createMyTransaction = async (body: CreateTransactionRequest) => {
+    return await requestWithAuth<TransactionItemResponse>("/balances/transactions", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const updateMyTransaction = async (transactionID: string, body: UpdateTransactionRequest) => {
+    return await requestWithAuth<TransactionItemResponse>(`/balances/transactions/${transactionID}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const deleteMyTransaction = async (transactionID: string) => {
+    return await requestWithAuth<unknown>(`/balances/transactions/${transactionID}`, {
+      method: "DELETE",
+    });
+  };
+
   return {
     clearSession,
     getAccessToken,
@@ -725,6 +816,10 @@ export const useAuthApi = () => {
     updateMyBudget,
     deleteMyBudget,
     recalculateAllBudgets,
+    listMyTransactions,
+    createMyTransaction,
+    updateMyTransaction,
+    deleteMyTransaction,
     loginMember,
     refreshMemberToken,
     registerMember,
