@@ -292,6 +292,12 @@ const REFRESH_EXPIRES_AT_KEY = "balance_app_refresh_expires_at";
 const ACCESS_TOKEN_COOKIE = "balance_app_access_token";
 const REFRESH_TOKEN_COOKIE = "balance_app_refresh_token";
 const TOKEN_TYPE_COOKIE = "balance_app_token_type";
+const ACCESS_REFRESH_BUFFER_MS = 30 * 1000;
+const SILENT_REFRESH_MIN_DELAY_MS = 5 * 1000;
+const SILENT_REFRESH_RETRY_DELAY_MS = 60 * 1000;
+
+let silentRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let refreshInFlight: Promise<ApiEnvelope<RefreshResponse>> | null = null;
 
 export const useAuthApi = () => {
   const apiBase =
@@ -377,6 +383,8 @@ export const useAuthApi = () => {
     setCookie(ACCESS_TOKEN_COOKIE, payload.accessToken, payload.expiresIn);
     setCookie(REFRESH_TOKEN_COOKIE, payload.refreshToken, payload.refreshExpiresIn);
     setCookie(TOKEN_TYPE_COOKIE, payload.tokenType, payload.refreshExpiresIn);
+
+    scheduleSilentRefresh();
   };
 
   const clearSession = () => {
@@ -393,6 +401,8 @@ export const useAuthApi = () => {
     removeCookie(ACCESS_TOKEN_COOKIE);
     removeCookie(REFRESH_TOKEN_COOKIE);
     removeCookie(TOKEN_TYPE_COOKIE);
+
+    clearSilentRefreshTimer();
   };
 
   const getAccessToken = () => {
@@ -419,6 +429,80 @@ export const useAuthApi = () => {
     return localStorage.getItem(REFRESH_TOKEN_KEY) || getCookie(REFRESH_TOKEN_COOKIE) || "";
   };
 
+  const getAccessExpiresAt = () => {
+    if (typeof window === "undefined") {
+      return 0;
+    }
+
+    const raw = localStorage.getItem(ACCESS_EXPIRES_AT_KEY);
+    const parsed = Number(raw || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getRefreshExpiresAt = () => {
+    if (typeof window === "undefined") {
+      return 0;
+    }
+
+    const raw = localStorage.getItem(REFRESH_EXPIRES_AT_KEY);
+    const parsed = Number(raw || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const shouldRefreshAccessToken = () => {
+    const expiresAt = getAccessExpiresAt();
+    if (!expiresAt) {
+      return false;
+    }
+
+    return Date.now() + ACCESS_REFRESH_BUFFER_MS >= expiresAt;
+  };
+
+  const clearSilentRefreshTimer = () => {
+    if (silentRefreshTimer) {
+      clearTimeout(silentRefreshTimer);
+      silentRefreshTimer = null;
+    }
+  };
+
+  const scheduleSilentRefresh = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    clearSilentRefreshTimer();
+
+    const refreshToken = getRefreshToken().trim();
+    const refreshExpiresAt = getRefreshExpiresAt();
+    if (!refreshToken || (refreshExpiresAt > 0 && Date.now() >= refreshExpiresAt)) {
+      return;
+    }
+
+    const accessExpiresAt = getAccessExpiresAt();
+    const targetDelay = accessExpiresAt > 0
+      ? accessExpiresAt - Date.now() - ACCESS_REFRESH_BUFFER_MS
+      : SILENT_REFRESH_MIN_DELAY_MS;
+    const delay = Math.max(SILENT_REFRESH_MIN_DELAY_MS, targetDelay);
+
+    silentRefreshTimer = setTimeout(async () => {
+      try {
+        await refreshMemberToken();
+      } catch (error) {
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          clearSession();
+          return;
+        }
+
+        silentRefreshTimer = setTimeout(() => {
+          scheduleSilentRefresh();
+        }, SILENT_REFRESH_RETRY_DELAY_MS);
+        return;
+      }
+
+      scheduleSilentRefresh();
+    }, delay);
+  };
+
   const shouldRetryWithRefresh = (error: unknown) => {
     if (error instanceof ApiError) {
       if (error.status === 401 || error.status === 403) {
@@ -437,6 +521,15 @@ export const useAuthApi = () => {
   };
 
   const requestWithAuth = async <T>(path: string, init?: RequestInit, allowRetry = true): Promise<ApiEnvelope<T>> => {
+    if (allowRetry && shouldRefreshAccessToken()) {
+      try {
+        await refreshMemberToken();
+      } catch {
+        clearSession();
+        throw new Error("access-token-expired");
+      }
+    }
+
     let accessToken = getAccessToken().trim();
 
     if (!accessToken) {
@@ -501,28 +594,40 @@ export const useAuthApi = () => {
   };
 
   const refreshMemberToken = async (refreshToken?: string) => {
+    if (refreshInFlight) {
+      return await refreshInFlight;
+    }
+
     const token = (refreshToken || getRefreshToken()).trim();
     if (!token) {
       throw new Error("refresh-token-missing");
     }
 
-    const res = await request<RefreshResponse>("/public/auth/refresh", {
+    refreshInFlight = request<RefreshResponse>("/public/auth/refresh", {
       method: "POST",
       body: JSON.stringify({
         refresh_token: token,
       }),
     });
 
-    saveSession({
-      accessToken: res.data.access_token,
-      refreshToken: res.data.refresh_token,
-      tokenType: res.data.token_type,
-      expiresIn: res.data.expires_in,
-      refreshExpiresIn: res.data.refresh_expires_in,
-    });
+    try {
+      const res = await refreshInFlight;
 
-    return res;
+      saveSession({
+        accessToken: res.data.access_token,
+        refreshToken: res.data.refresh_token,
+        tokenType: res.data.token_type,
+        expiresIn: res.data.expires_in,
+        refreshExpiresIn: res.data.refresh_expires_in,
+      });
+
+      return res;
+    } finally {
+      refreshInFlight = null;
+    }
   };
+
+  scheduleSilentRefresh();
 
   const registerMember = async (body: RegisterRequest) => {
     return await request<unknown>("/public/auth/register", {

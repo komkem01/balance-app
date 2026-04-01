@@ -1332,7 +1332,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
 import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
@@ -1381,6 +1381,8 @@ const { listMyWallets, createMyWallet, listMyCategories, createMyCategory, delet
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const loading = ref(false);
 const message = ref("");
+const TOAST_DURATION_MS = 2200;
+let messageTimer: ReturnType<typeof setTimeout> | null = null;
 const pageLoading = ref(false);
 const datePickerOpen = ref(false);
 const datePickerContainerRef = ref<HTMLElement | null>(null);
@@ -1451,6 +1453,11 @@ const isValidTwoDecimalAmount = (amount: number) => {
 
 const normalizeTwoDecimalAmount = (amount: number) => {
   return Math.round(amount * 100) / 100;
+};
+
+const getWalletBalance = (walletID: string) => {
+  const wallet = wallets.value.find((item) => item.id === walletID);
+  return Number(wallet?.balance || 0);
 };
 
 const walletDropdownItems = computed(() =>
@@ -1771,6 +1778,15 @@ const submitTransaction = async () => {
     return;
   }
 
+  if (
+    newRecord.type === "expense" &&
+    normalizeTwoDecimalAmount(newRecord.amount) >
+      normalizeTwoDecimalAmount(getWalletBalance(newRecord.wallet_id))
+  ) {
+    message.value = "transaction-insufficient-funds";
+    return;
+  }
+
   loading.value = true;
   try {
     await createMyTransaction({
@@ -1888,6 +1904,26 @@ onUnmounted(() => {
   if (typeof window !== "undefined") {
     document.removeEventListener("click", onDocumentClick);
   }
+  if (messageTimer) {
+    clearTimeout(messageTimer);
+    messageTimer = null;
+  }
+});
+
+watch(message, (value) => {
+  if (messageTimer) {
+    clearTimeout(messageTimer);
+    messageTimer = null;
+  }
+
+  if (!value) {
+    return;
+  }
+
+  messageTimer = setTimeout(() => {
+    message.value = "";
+    messageTimer = null;
+  }, TOAST_DURATION_MS);
 });
 
 // Pagination State

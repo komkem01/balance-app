@@ -1030,6 +1030,15 @@ const normalizeTwoDecimalAmount = (amount: number) => {
   return Math.round(amount * 100) / 100;
 };
 
+const transactionDelta = (type: TransactionType, amount: number) => {
+  return type === "expense" ? -amount : amount;
+};
+
+const getWalletBalance = (walletID: string) => {
+  const wallet = wallets.value.find((item) => item.id === walletID);
+  return Number(wallet?.balance || 0);
+};
+
 const loadWallets = async () => {
   const res = await listMyWallets({ page: 1, size: 200, isActive: true });
   wallets.value = (res.items || []).map((item) => ({
@@ -1174,13 +1183,27 @@ const saveEditedTransaction = async () => {
     return;
   }
 
+  const nextAmount = normalizeTwoDecimalAmount(editTransaction.amount);
+  const original = allTransactions.value.find((item) => item.id === editTransaction.id);
+  let projectedBalance = getWalletBalance(editTransaction.walletID);
+
+  if (original && original.walletID === editTransaction.walletID) {
+    projectedBalance -= transactionDelta(original.type, normalizeTwoDecimalAmount(original.amount));
+  }
+
+  projectedBalance += transactionDelta(editTransaction.type, nextAmount);
+  if (projectedBalance < 0) {
+    actionError.value = "transaction-insufficient-funds";
+    return;
+  }
+
   actionLoading.value = true;
   actionError.value = "";
   try {
     await updateMyTransaction(editTransaction.id, {
       wallet_id: editTransaction.walletID,
       category_id: editTransaction.categoryID,
-      amount: normalizeTwoDecimalAmount(editTransaction.amount),
+      amount: nextAmount,
       type: editTransaction.type,
       transaction_date: editTransaction.transactionDate,
       note: editTransaction.note.trim(),

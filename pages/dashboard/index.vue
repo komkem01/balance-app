@@ -18,14 +18,12 @@
     <!-- Sidebar Section -->
     <aside
       :class="[
-        'bg-white border-r border-slate-200 shadow-[8px_0_24px_rgba(15,23,42,0.06)] flex flex-col z-20 transition-all duration-300 ease-out',
-        'fixed inset-y-0 left-0',
-        mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full min-[1025px]:translate-x-0',
-        sidebarCollapsed ? 'min-[1025px]:w-20' : 'min-[1025px]:w-72',
-        'w-72'
+        'w-72 h-screen shrink-0 bg-white/70 backdrop-blur-xl border-r border-slate-100 flex flex-col z-20 relative transition-all duration-300 ease-out',
+        'max-[1024px]:fixed max-[1024px]:inset-y-0 max-[1024px]:left-0 max-[1024px]:z-30 min-[1025px]:translate-x-0',
+        mobileSidebarOpen ? 'max-[1024px]:translate-x-0' : 'max-[1024px]:-translate-x-full'
       ]"
     >
-      <div :class="['relative px-7 py-8', sidebarCollapsed ? 'px-3' : '']">
+      <div class="relative p-10">
         <button
           class="inline-flex min-[1025px]:hidden absolute top-5 right-4 h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition"
           aria-label="Close sidebar"
@@ -33,59 +31,28 @@
         >
           <span class="text-base">×</span>
         </button>
-        <button
-          :class="[
-            'hidden min-[1025px]:inline-flex absolute top-5 right-4 items-center justify-center rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition',
-            sidebarCollapsed ? 'h-7 w-7' : 'h-8 w-8'
-          ]"
-          :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
-          @click="sidebarCollapsed = !sidebarCollapsed"
+        <h1
+          class="text-xs font-bold tracking-[0.4em] text-slate-400 uppercase mb-1"
         >
-          <span class="text-sm">{{ sidebarCollapsed ? '→' : '←' }}</span>
-        </button>
-        <div :class="['flex', sidebarCollapsed ? 'flex-col items-center gap-3' : 'items-start']">
-          <div>
-            <h1
-              v-if="!sidebarCollapsed"
-              class="text-xs font-bold tracking-[0.4em] text-slate-400 uppercase mb-1"
-            >
-              Archive
-            </h1>
-            <h2
-              v-if="!sidebarCollapsed"
-              class="text-2xl font-light tracking-tighter text-slate-900 uppercase"
-            >
-              Balance
-            </h2>
-            <div
-              v-else
-              class="h-10 w-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-sm font-bold"
-            >
-              B
-            </div>
-          </div>
-        </div>
+          Archive
+        </h1>
+        <h2
+          class="text-2xl font-light tracking-tighter text-slate-900 uppercase"
+        >
+          Balance
+        </h2>
       </div>
 
       <!-- Navigation Accordion -->
-      <nav :class="['flex-1 px-4 space-y-2 overflow-hidden', sidebarCollapsed ? 'px-2' : '']">
+      <nav class="flex-1 px-6 space-y-2 overflow-hidden">
         <!-- Section: Overview -->
         <div class="space-y-1">
           <button
-            @click="sidebarCollapsed ? goTo('dashboard') : toggleSection('overview')"
-            :class="[
-              'w-full flex items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors',
-              sidebarCollapsed ? 'justify-center' : 'justify-between'
-            ]"
+            @click="toggleSection('overview')"
+            class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
           >
-            <span class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 13h8V3H3v10zm10 8h8v-6h-8v6zM13 3v8h8V3h-8zM3 21h8v-6H3v6z" />
-              </svg>
-              <span :class="sidebarCollapsed ? 'hidden' : ''">Overview</span>
-            </span>
+            Overview
             <span
-              v-if="!sidebarCollapsed"
               class="text-[9px] transition-transform duration-300"
               :class="{ 'rotate-180': sections.overview }"
               >▼</span
@@ -97,8 +64,7 @@
               sections.overview
                 ? 'max-h-96 opacity-100 translate-y-0'
                 : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none',
-              'overflow-hidden transition-all duration-300 ease-out space-y-1 ml-4 border-l border-slate-100',
-              sidebarCollapsed ? 'hidden' : ''
+              'overflow-hidden transition-all duration-300 ease-out space-y-1 ml-4 border-l border-slate-100'
             ]"
           >
             <button
@@ -119,20 +85,11 @@
         <!-- Section: Management -->
         <div class="space-y-1">
           <button
-            @click="sidebarCollapsed ? goTo('wallets') : toggleSection('management')"
-            :class="[
-              'w-full flex items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors',
-              sidebarCollapsed ? 'justify-center' : 'justify-between'
-            ]"
+            @click="toggleSection('management')"
+            class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
           >
-            <span class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 7h16M4 12h16M4 17h10" />
-              </svg>
-              <span :class="sidebarCollapsed ? 'hidden' : ''">Management</span>
-            </span>
+            Management
             <span
-              v-if="!sidebarCollapsed"
               class="text-[9px] transition-transform duration-300"
               :class="{ 'rotate-180': sections.management }"
               >▼</span
@@ -144,8 +101,7 @@
               sections.management
                 ? 'max-h-96 opacity-100 translate-y-0'
                 : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none',
-              'overflow-hidden transition-all duration-300 ease-out space-y-1 ml-4 border-l border-slate-100',
-              sidebarCollapsed ? 'hidden' : ''
+              'overflow-hidden transition-all duration-300 ease-out space-y-1 ml-4 border-l border-slate-100'
             ]"
           >
             <button
@@ -172,20 +128,11 @@
         <!-- Section: Actions -->
         <div class="space-y-1">
           <button
-            @click="sidebarCollapsed ? goTo('record') : toggleSection('actions')"
-            :class="[
-              'w-full flex items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors',
-              sidebarCollapsed ? 'justify-center' : 'justify-between'
-            ]"
+            @click="toggleSection('actions')"
+            class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
           >
-            <span class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 5v14M5 12h14" />
-              </svg>
-              <span :class="sidebarCollapsed ? 'hidden' : ''">Entry</span>
-            </span>
+            Entry
             <span
-              v-if="!sidebarCollapsed"
               class="text-[9px] transition-transform duration-300"
               :class="{ 'rotate-180': sections.actions }"
               >▼</span
@@ -197,8 +144,7 @@
               sections.actions
                 ? 'max-h-96 opacity-100 translate-y-0'
                 : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none',
-              'overflow-hidden transition-all duration-300 ease-out space-y-1 ml-4 border-l border-slate-100',
-              sidebarCollapsed ? 'hidden' : ''
+              'overflow-hidden transition-all duration-300 ease-out space-y-1 ml-4 border-l border-slate-100'
             ]"
           >
             <button @click="goTo('record')" :class="navClass('record')">
@@ -210,21 +156,11 @@
         <!-- Section: System -->
         <div class="space-y-1">
           <button
-            @click="sidebarCollapsed ? goTo('settings') : toggleSection('system')"
-            :class="[
-              'w-full flex items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors',
-              sidebarCollapsed ? 'justify-center' : 'justify-between'
-            ]"
+            @click="toggleSection('system')"
+            class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
           >
-            <span class="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-4 w-4">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 8a4 4 0 100 8 4 4 0 000-8z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 12h2m14 0h2M12 3v2m0 14v2m-6.36-2.64l1.41-1.41m9.9-9.9l1.41-1.41m0 12.72l-1.41-1.41m-9.9-9.9L4.64 5.64" />
-              </svg>
-              <span :class="sidebarCollapsed ? 'hidden' : ''">System</span>
-            </span>
+            System
             <span
-              v-if="!sidebarCollapsed"
               class="text-[9px] transition-transform duration-300"
               :class="{ 'rotate-180': sections.system }"
               >▼</span
@@ -236,8 +172,7 @@
               sections.system
                 ? 'max-h-96 opacity-100 translate-y-0'
                 : 'max-h-0 opacity-0 -translate-y-1 pointer-events-none',
-              'overflow-hidden transition-all duration-300 ease-out space-y-1 ml-4 border-l border-slate-100',
-              sidebarCollapsed ? 'hidden' : ''
+              'overflow-hidden transition-all duration-300 ease-out space-y-1 ml-4 border-l border-slate-100'
             ]"
           >
             <button
@@ -257,30 +192,23 @@
       </nav>
 
       <!-- Footer User Info -->
-      <div :class="['border-t border-slate-100 bg-slate-900 text-white px-6 py-5', sidebarCollapsed ? 'px-3' : '']">
-        <p v-if="!sidebarCollapsed" class="text-[9px] uppercase tracking-[0.2em] text-slate-300 mb-1">
+      <div class="border-t border-slate-100 bg-slate-900 px-6 py-5 text-white">
+        <p class="text-[9px] uppercase tracking-[0.2em] text-slate-300 mb-1">
           Authenticated as
         </p>
-        <p class="text-sm font-semibold tracking-tight" :class="sidebarCollapsed ? 'text-center' : ''">
-          {{ sidebarCollapsed ? userInitials : userDisplayName }}
-        </p>
+        <p class="text-sm font-semibold tracking-tight">{{ userDisplayName }}</p>
         <button
           @click="logout"
-          :class="[
-            'mt-4 inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition',
-            sidebarCollapsed ? 'w-full px-0 py-2' : 'w-full px-4 py-2'
-          ]"
+          class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition"
         >
-          <span :class="sidebarCollapsed ? 'hidden' : ''">Logout</span>
-          <span v-if="sidebarCollapsed">↪</span>
+          Logout
         </button>
       </div>
     </aside>
 
     <!-- Main Content Area -->
     <main
-      class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300"
-      :style="mainContentStyle"
+      class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1"
     >
       <AppLoading v-if="pageLoading" overlay label="Loading data..." />
 
@@ -574,7 +502,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
@@ -611,12 +539,9 @@ type TransactionItem = {
   date: string;
 };
 
-const sidebarCollapsed = ref(false);
 const mobileSidebarOpen = ref(false);
-const isDesktop = ref(false);
-const DESKTOP_MIN_WIDTH = 1025;
 
-const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName, userInitials } = useSidebarNavigation({
+const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
   initialSections: {
     overview: true,
     management: false,
@@ -638,38 +563,8 @@ const budgets = ref<BudgetItem[]>([]);
 const allTransactions = ref<TransactionItem[]>([]);
 const pageLoading = ref(false);
 
-const mainContentStyle = computed(() => {
-  if (!isDesktop.value) {
-    return { marginLeft: "0px", width: "100%" };
-  }
-
-  const sidebarWidth = sidebarCollapsed.value ? 80 : 288;
-  return {
-    marginLeft: `${sidebarWidth}px`,
-    width: `calc(100% - ${sidebarWidth}px)`,
-  };
-});
-
-const syncResponsiveState = () => {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  isDesktop.value = window.innerWidth >= DESKTOP_MIN_WIDTH;
-
-  if (window.innerWidth >= DESKTOP_MIN_WIDTH) {
-    mobileSidebarOpen.value = false;
-  }
-};
-
 onMounted(() => {
-  syncResponsiveState();
-  window.addEventListener("resize", syncResponsiveState);
   void loadInitialData();
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("resize", syncResponsiveState);
 });
 
 const normalizeErrorMessage = (error: unknown) => {
