@@ -300,8 +300,11 @@ let silentRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 let refreshInFlight: Promise<ApiEnvelope<RefreshResponse>> | null = null;
 
 export const useAuthApi = () => {
+  const runtimeConfig = useRuntimeConfig();
   const apiBase =
+    (runtimeConfig.public.apiBase as string | undefined) ||
     (import.meta.env.NUXT_PUBLIC_API_BASE as string | undefined) ||
+    (import.meta.env.NUXT_PUBLIC_API_URL as string | undefined) ||
     "http://localhost:8080/api/v1";
 
   const request = async <T>(path: string, init?: RequestInit): Promise<ApiEnvelope<T>> => {
