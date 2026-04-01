@@ -306,7 +306,14 @@
             <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">
               Total Net Worth
             </p>
-            <p class="text-2xl font-medium tracking-tight">฿ 142,500.00</p>
+            <p class="text-2xl font-medium tracking-tight">
+              ฿
+              {{
+                headerTotalNetWorth.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })
+              }}
+            </p>
           </div>
           <button
             @click="goTo('record')"
@@ -565,6 +572,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from "vue";
+import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 const sidebarCollapsed = ref(false);
@@ -585,6 +593,7 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 
 const mainContentStyle = computed(() => {
   if (!isDesktop.value) {
@@ -613,6 +622,7 @@ const syncResponsiveState = () => {
 onMounted(() => {
   syncResponsiveState();
   window.addEventListener("resize", syncResponsiveState);
+  void refreshTotalNetWorth();
 });
 
 onBeforeUnmount(() => {
@@ -625,6 +635,11 @@ const wallets = [
   { id: 2, name: "Cash on Hand", balance: 2500 },
   { id: 3, name: "Investment Port", balance: 20000 },
 ];
+
+const headerTotalNetWorth = computed(() => {
+  const fallback = wallets.reduce((acc, curr) => acc + curr.balance, 0);
+  return totalNetWorthFromAPI.value ?? fallback;
+});
 
 const recentTransactions = [
   {

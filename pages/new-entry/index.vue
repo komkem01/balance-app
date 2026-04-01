@@ -235,7 +235,7 @@
             <p class="text-2xl font-medium tracking-tight">
               ฿
               {{
-                totalNetWorth.toLocaleString(undefined, {
+                headerTotalNetWorth.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                 })
               }}
@@ -1291,7 +1291,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
+import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 const mobileSidebarOpen = ref(false);
@@ -1301,6 +1302,7 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const loading = ref(false);
 const message = ref("");
 const confirmModalOpen = ref(false);
@@ -1351,6 +1353,14 @@ const newWallet = reactive({
 
 const totalNetWorth = computed(() => {
   return wallets.value.reduce((acc, curr) => acc + curr.balance, 0);
+});
+
+const headerTotalNetWorth = computed(() => {
+  return totalNetWorthFromAPI.value ?? totalNetWorth.value;
+});
+
+onMounted(() => {
+  void refreshTotalNetWorth();
 });
 
 const walletDropdownItems = computed(() =>

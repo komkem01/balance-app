@@ -237,7 +237,7 @@
             <p class="text-2xl font-medium tracking-tight">
               ฿
               {{
-                totalNetWorth.toLocaleString(undefined, {
+                headerTotalNetWorth.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                 })
               }}
@@ -1478,6 +1478,7 @@
 import { ref, reactive, computed, onMounted } from "vue";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 import { useAuthApi } from "../../composables/useAuthApi";
+import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 
 type MeData = {
   id: string;
@@ -1510,6 +1511,7 @@ const passwordChanging = ref(false);
 const accountDeactivating = ref(false);
 const message = ref("");
 const authApi = useAuthApi();
+const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const confirmModalOpen = ref(false);
 const confirmTitle = ref("Confirm Action");
 const confirmDescription = ref("");
@@ -1660,6 +1662,7 @@ const loadMeProfile = async () => {
 
 onMounted(() => {
   void loadMeProfile();
+  void refreshTotalNetWorth();
 });
 
 // Wallets State & Logic
@@ -1677,6 +1680,10 @@ const newWallet = reactive({
 
 const totalNetWorth = computed(() => {
   return wallets.value.reduce((acc, curr) => acc + curr.balance, 0);
+});
+
+const headerTotalNetWorth = computed(() => {
+  return totalNetWorthFromAPI.value ?? totalNetWorth.value;
 });
 
 const walletDropdownItems = computed(() =>

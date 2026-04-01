@@ -899,7 +899,7 @@
               >
                 Set Spending Constraint
               </h4>
-              <form @submit.prevent="addBudget" class="space-y-6">
+              <form @submit.prevent="requestAddBudget" class="space-y-6">
                 <div class="space-y-2">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
@@ -934,7 +934,7 @@
                   >
                   <div class="grid grid-cols-3 gap-4">
                     <button
-                      v-for="p in ['daily', 'weekly', 'monthly']"
+                      v-for="p in budgetPeriods"
                       :key="p"
                       type="button"
                       @click="newBudget.period = p"
@@ -948,12 +948,16 @@
                       {{ p }}
                     </button>
                   </div>
+                  <p class="px-1 text-[9px] text-slate-400 uppercase tracking-[0.15em] leading-relaxed">
+                    Policy: Daily = today, Weekly = Monday-Sunday, Monthly = first-to-last day of calendar month (Asia/Bangkok)
+                  </p>
                 </div>
                 <button
                   type="submit"
+                  :disabled="budgetsSaving || budgetsLoading"
                   class="w-full py-5 bg-indigo-500 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg shadow-indigo-100 hover:bg-indigo-600 transition-all mt-4"
                 >
-                  Archive Budget
+                  {{ budgetsSaving ? "Archiving..." : "Archive Budget" }}
                 </button>
               </form>
             </div>
@@ -996,6 +1000,13 @@
                 </div>
               </div>
 
+              <p v-if="budgetsLoading" class="mb-5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Loading budget archive...
+              </p>
+              <p v-else-if="budgetsError" class="mb-5 text-[10px] font-bold uppercase tracking-widest text-rose-500">
+                {{ budgetsError }}
+              </p>
+
               <div class="space-y-8">
                 <div
                   v-for="budget in filteredBudgets"
@@ -1014,13 +1025,16 @@
                       >
                         {{ budget.period }} Constraint
                       </p>
+                      <p class="text-[9px] text-slate-300 uppercase tracking-[0.2em] mt-0.5">
+                        {{ formatBudgetRange(budget.start_date, budget.end_date) }}
+                      </p>
                     </div>
                     <div class="text-right">
                       <p
                         class="text-sm font-semibold tracking-tight text-slate-900"
                       >
-                        ฿ {{ budget.spent.toLocaleString() }} /
-                        {{ budget.amount.toLocaleString() }}
+                        ฿ {{ budget.spent.toLocaleString(undefined, { minimumFractionDigits: 2 }) }} /
+                        {{ budget.amount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
                       </p>
                       <p
                         class="text-[9px] text-slate-400 uppercase tracking-widest mt-0.5"
@@ -1036,13 +1050,13 @@
                     <div
                       :class="[
                         'h-full transition-all duration-1000',
-                        budget.spent / budget.amount > 0.9
+                        budget.amount > 0 && budget.spent / budget.amount > 0.9
                           ? 'bg-rose-500'
                           : 'bg-slate-900',
                       ]"
                       :style="{
                         width:
-                          Math.min(budget.spent / budget.amount, 1) * 100 + '%',
+                          Math.min(budget.amount > 0 ? budget.spent / budget.amount : 0, 1) * 100 + '%',
                       }"
                     ></div>
                   </div>
@@ -1050,12 +1064,17 @@
                     class="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <button
+                      @click="requestRemoveBudget(budget)"
+                      :disabled="budgetsDeletingID === budget.id || budgetsLoading"
                       class="text-[9px] font-bold text-slate-300 uppercase tracking-widest hover:text-rose-500 transition-colors"
                     >
-                      Terminate
+                      {{ budgetsDeletingID === budget.id ? "Detaching..." : "Detach" }}
                     </button>
                   </div>
                 </div>
+                <p v-if="!budgetsLoading && !budgetsError && filteredBudgets.length === 0" class="text-sm text-slate-400">
+                  No budgets found. Create your first budget.
+                </p>
               </div>
             </div>
           </div>
@@ -1098,11 +1117,23 @@
       @confirm="confirmLogout"
       @cancel="cancelLogout"
     />
+
+    <AppConfirmModal
+      :open="budgetConfirmOpen"
+      :title="budgetConfirmTitle"
+      :description="budgetConfirmDescription"
+      :confirm-label="budgetActionLoading ? 'Processing...' : budgetConfirmLabel"
+      cancel-label="Cancel"
+      @update:open="cancelBudgetConfirm"
+      @confirm="confirmBudgetAction"
+      @cancel="cancelBudgetConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
+import { useAuthApi } from "../../composables/useAuthApi";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 const mobileSidebarOpen = ref(false);
@@ -1112,13 +1143,33 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { listMyWallets, listMyCategories, listMyBudgets, createMyBudget, deleteMyBudget } = useAuthApi();
+
+type WalletViewItem = {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+};
+
+type CategoryViewItem = {
+  id: string;
+  name: string;
+  type: "income" | "expense";
+};
+
+type BudgetViewItem = {
+  id: string;
+  category_id: string;
+  amount: number;
+  spent: number;
+  period: "daily" | "weekly" | "monthly";
+  start_date: string | null;
+  end_date: string | null;
+};
 
 // Wallets State & Logic
-const wallets = ref([
-  { id: 1, name: "Main Savings", balance: 120000, currency: "THB" },
-  { id: 2, name: "Cash on Hand", balance: 2500, currency: "THB" },
-  { id: 3, name: "Investment Port", balance: 20000, currency: "THB" },
-]);
+const wallets = ref<WalletViewItem[]>([]);
 
 const newWallet = reactive({
   name: "",
@@ -1126,7 +1177,12 @@ const newWallet = reactive({
   currency: "THB",
 });
 
+const totalNetWorthFromAPI = ref<number | null>(null);
+
 const totalNetWorth = computed(() => {
+  if (totalNetWorthFromAPI.value !== null) {
+    return totalNetWorthFromAPI.value;
+  }
   return wallets.value.reduce((acc, curr) => acc + curr.balance, 0);
 });
 
@@ -1138,7 +1194,7 @@ const currencyDropdownItems = [
 const addWallet = () => {
   if (!newWallet.name) return;
   wallets.value.unshift({
-    id: Date.now(),
+    id: String(Date.now()),
     name: newWallet.name,
     balance: newWallet.balance,
     currency: newWallet.currency,
@@ -1149,20 +1205,10 @@ const addWallet = () => {
 };
 
 // Categories State & Logic
-const categories = ref([
-  { id: 1, name: "Food & Drink", type: "expense" },
-  { id: 2, name: "Salary", type: "income" },
-  { id: 3, name: "Transport", type: "expense" },
-  { id: 4, name: "Freelance", type: "income" },
-  { id: 5, name: "Subscription", type: "expense" },
-  { id: 6, name: "Health", type: "expense" },
-  { id: 7, name: "Dining Out", type: "expense" },
-  { id: 8, name: "Entertainment", type: "expense" },
-  { id: 9, name: "Shopping", type: "expense" },
-]);
+const categories = ref<CategoryViewItem[]>([]);
 
 const categoryFilter = ref("all");
-const newCategory = reactive({
+const newCategory = reactive<{ name: string; type: "income" | "expense" }>({
   name: "",
   type: "expense",
 });
@@ -1172,7 +1218,7 @@ const filteredCategories = computed(() => {
   return categories.value.filter((c) => c.type === categoryFilter.value);
 });
 
-const getCategoryName = (id: number) => {
+const getCategoryName = (id: string) => {
   const cat = categories.value.find((c) => c.id === id);
   return cat ? cat.name : "Unknown";
 };
@@ -1180,7 +1226,7 @@ const getCategoryName = (id: number) => {
 const addCategory = () => {
   if (!newCategory.name) return;
   categories.value.unshift({
-    id: Date.now(),
+    id: String(Date.now()),
     name: newCategory.name,
     type: newCategory.type,
   });
@@ -1188,17 +1234,25 @@ const addCategory = () => {
 };
 
 // Budgets State & Logic
-const budgets = ref([
-  { id: 1, category_id: 7, amount: 5000, spent: 4250, period: "monthly" },
-  { id: 2, category_id: 8, amount: 2000, spent: 600, period: "monthly" },
-  { id: 3, category_id: 9, amount: 3000, spent: 2760, period: "monthly" },
-]);
+const budgets = ref<BudgetViewItem[]>([]);
+const budgetsLoading = ref(false);
+const budgetsSaving = ref(false);
+const budgetsDeletingID = ref("");
+const budgetsError = ref("");
+const budgetConfirmOpen = ref(false);
+const budgetConfirmTitle = ref("Confirm Action");
+const budgetConfirmDescription = ref("");
+const budgetConfirmLabel = ref("Confirm");
+const budgetConfirmAction = ref<"create" | "delete" | "">("");
+const budgetPendingID = ref("");
+const budgetActionLoading = computed(() => budgetsSaving.value || Boolean(budgetsDeletingID.value));
 
 const budgetPeriodFilter = ref("all");
+const budgetPeriods = ["daily", "weekly", "monthly"] as const;
 const newBudget = reactive({
   category_id: "",
   amount: 0,
-  period: "monthly",
+  period: "monthly" as "daily" | "weekly" | "monthly",
 });
 
 const filteredBudgets = computed(() => {
@@ -1212,18 +1266,190 @@ const budgetCategoryDropdownItems = computed(() =>
     .map((cat) => ({ label: cat.name, value: cat.id })),
 );
 
-const addBudget = () => {
-  if (!newBudget.category_id || !newBudget.amount) return;
-  budgets.value.unshift({
-    id: Date.now(),
-    category_id: Number(newBudget.category_id),
-    amount: newBudget.amount,
-    spent: 0,
-    period: newBudget.period,
-  });
-  // Reset form
-  newBudget.category_id = "";
-  newBudget.amount = 0;
+const normalizeBudgetError = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "budget-request-failed";
+};
+
+const loadWallets = async () => {
+  try {
+    const res = await listMyWallets({ page: 1, size: 200, isActive: true });
+    wallets.value = (res.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      balance: Number(item.balance || 0),
+      currency: item.currency || "THB",
+    }));
+  } catch {
+    // Keep page usable even if wallet snapshot fails.
+  }
+};
+
+const loadCategories = async () => {
+  try {
+    const res = await listMyCategories({ page: 1, size: 300 });
+    categories.value = (res.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+    }));
+  } catch {
+    categories.value = [];
+  }
+};
+
+const loadBudgets = async () => {
+  budgetsLoading.value = true;
+  budgetsError.value = "";
+
+  try {
+    const period = budgetPeriodFilter.value === "all" ? undefined : (budgetPeriodFilter.value as "daily" | "weekly" | "monthly");
+    const res = await listMyBudgets({ page: 1, size: 300, period });
+    totalNetWorthFromAPI.value = Number(res.totalNetWorth || 0);
+    budgets.value = (res.items || []).map((item) => ({
+      id: item.id,
+      category_id: item.category_id || "",
+      amount: Number(item.amount || 0),
+      spent: Number(item.spent_amount || 0),
+      period: item.period,
+      start_date: item.start_date,
+      end_date: item.end_date,
+    }));
+  } catch (error) {
+    budgetsError.value = normalizeBudgetError(error);
+  } finally {
+    budgetsLoading.value = false;
+  }
+};
+
+const addBudget = async () => {
+  if (!newBudget.category_id || Number(newBudget.amount || 0) <= 0) {
+    budgetsError.value = "budget-amount-required";
+    return;
+  }
+
+  budgetsSaving.value = true;
+  budgetsError.value = "";
+
+  try {
+    const res = await createMyBudget({
+      category_id: newBudget.category_id,
+      amount: Number(newBudget.amount || 0),
+      period: newBudget.period,
+    });
+
+    budgets.value.unshift({
+      id: res.data.id,
+      category_id: res.data.category_id || newBudget.category_id,
+      amount: Number(res.data.amount || 0),
+      spent: Number(res.data.spent_amount || 0),
+      period: res.data.period,
+      start_date: res.data.start_date,
+      end_date: res.data.end_date,
+    });
+
+    newBudget.category_id = "";
+    newBudget.amount = 0;
+    newBudget.period = "monthly";
+  } catch (error) {
+    budgetsError.value = normalizeBudgetError(error);
+  } finally {
+    budgetsSaving.value = false;
+  }
+};
+
+const requestAddBudget = () => {
+  if (!newBudget.category_id || Number(newBudget.amount || 0) <= 0) {
+    budgetsError.value = "budget-amount-required";
+    return;
+  }
+
+  budgetConfirmAction.value = "create";
+  budgetConfirmTitle.value = "Confirm Create Budget";
+  budgetConfirmDescription.value = "Create this budget with current information?";
+  budgetConfirmLabel.value = "Create";
+  budgetConfirmOpen.value = true;
+};
+
+const removeBudget = async (budgetID: string) => {
+  if (!budgetID) {
+    return;
+  }
+
+  budgetsDeletingID.value = budgetID;
+  budgetsError.value = "";
+
+  try {
+    await deleteMyBudget(budgetID);
+    budgets.value = budgets.value.filter((item) => item.id !== budgetID);
+  } catch (error) {
+    budgetsError.value = normalizeBudgetError(error);
+  } finally {
+    budgetsDeletingID.value = "";
+  }
+};
+
+const budgetDateFormatter = new Intl.DateTimeFormat("th-TH", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  timeZone: "Asia/Bangkok",
+});
+
+const toReadableBudgetDate = (value: string | null) => {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return budgetDateFormatter.format(parsed);
+};
+
+const formatBudgetRange = (startDate: string | null, endDate: string | null) => {
+  if (!startDate && !endDate) {
+    return "DATE RANGE: N/A";
+  }
+
+  const startLabel = toReadableBudgetDate(startDate);
+  const endLabel = toReadableBudgetDate(endDate);
+  return `DATE RANGE: ${startLabel} - ${endLabel}`;
+};
+
+const requestRemoveBudget = (budget: { id: string; category_id: string }) => {
+  budgetPendingID.value = budget.id;
+  budgetConfirmAction.value = "delete";
+  budgetConfirmTitle.value = "Confirm Delete Budget";
+  budgetConfirmDescription.value = `Delete budget for ${getCategoryName(budget.category_id)}?`;
+  budgetConfirmLabel.value = "Delete";
+  budgetConfirmOpen.value = true;
+};
+
+const confirmBudgetAction = async () => {
+  try {
+    if (budgetConfirmAction.value === "create") {
+      await addBudget();
+    }
+
+    if (budgetConfirmAction.value === "delete" && budgetPendingID.value) {
+      await removeBudget(budgetPendingID.value);
+      budgetPendingID.value = "";
+    }
+  } finally {
+    budgetConfirmOpen.value = false;
+    budgetConfirmAction.value = "";
+  }
+};
+
+const cancelBudgetConfirm = () => {
+  budgetConfirmOpen.value = false;
+  budgetConfirmAction.value = "";
+  budgetPendingID.value = "";
 };
 
 // Extended Mock Data for History & Pagination
@@ -1372,8 +1598,13 @@ const activeBudgets = computed(() => {
   return budgets.value.map((b) => ({
     id: b.id,
     category: getCategoryName(b.category_id),
-    percent: Math.round((b.spent / b.amount) * 100),
+    percent: b.amount > 0 ? Math.round((b.spent / b.amount) * 100) : 0,
   }));
+});
+
+onMounted(async () => {
+  await Promise.all([loadWallets(), loadCategories()]);
+  await loadBudgets();
 });
 
 // Pagination State

@@ -131,6 +131,117 @@ type SystemManifestResponse = {
   environment: string;
 };
 
+type WalletItemResponse = {
+  id: string;
+  member_id: string | null;
+  name: string;
+  balance: number;
+  currency: string;
+  color_code: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type WalletListResponse = {
+  data: WalletItemResponse[];
+  paginate?: {
+    page?: number;
+    size?: number;
+    total?: number;
+    Page?: number;
+    Size?: number;
+    Total?: number;
+  };
+};
+
+type CreateWalletRequest = {
+  name: string;
+  balance: number;
+  currency: string;
+  color_code?: string;
+};
+
+type UpdateWalletRequest = {
+  name?: string;
+  balance?: number;
+  currency?: string;
+  color_code?: string;
+  is_active?: boolean;
+};
+
+type CategoryType = "income" | "expense";
+
+type CategoryItemResponse = {
+  id: string;
+  member_id: string | null;
+  name: string;
+  type: CategoryType;
+  icon_name: string;
+  color_code: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type CreateCategoryRequest = {
+  name: string;
+  type: CategoryType;
+  icon_name?: string;
+  color_code?: string;
+};
+
+type UpdateCategoryRequest = {
+  name?: string;
+  type?: CategoryType;
+  icon_name?: string;
+  color_code?: string;
+};
+
+type BudgetPeriod = "daily" | "weekly" | "monthly";
+
+type BudgetItemResponse = {
+  id: string;
+  member_id: string | null;
+  category_id: string | null;
+  amount: number;
+  spent_amount: number;
+  used_percent?: number;
+  period: BudgetPeriod;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+};
+
+type BudgetListResponseData = {
+  items: BudgetItemResponse[];
+  total_net_worth: number;
+};
+
+type CreateBudgetRequest = {
+  member_id?: string;
+  category_id?: string;
+  amount: number;
+  period: BudgetPeriod;
+  start_date?: string;
+  end_date?: string;
+};
+
+type UpdateBudgetRequest = {
+  member_id?: string;
+  category_id?: string;
+  amount?: number;
+  period?: BudgetPeriod;
+  start_date?: string;
+  end_date?: string;
+};
+
+type RecalculateAllBudgetsResponse = {
+  total_budgets: number;
+  updated_date_ranges: number;
+  updated_spent_amount: number;
+  recalculated_at: string;
+};
+
 const ACCESS_TOKEN_KEY = "balance_app_access_token";
 const REFRESH_TOKEN_KEY = "balance_app_refresh_token";
 const TOKEN_TYPE_KEY = "balance_app_token_type";
@@ -440,6 +551,154 @@ export const useAuthApi = () => {
     });
   };
 
+  const listMyWallets = async (params?: { page?: number; size?: number; isActive?: boolean }) => {
+    const page = params?.page || 1;
+    const size = params?.size || 100;
+    const query = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+
+    if (typeof params?.isActive === "boolean") {
+      query.set("is_active", String(params.isActive));
+    }
+
+    const res = await requestWithAuth<WalletItemResponse[]>(`/balances/wallets?${query.toString()}`, {
+      method: "GET",
+    });
+
+    return {
+      items: res.data || [],
+      paginate: (res as unknown as WalletListResponse).paginate,
+    };
+  };
+
+  const createMyWallet = async (body: CreateWalletRequest) => {
+    return await requestWithAuth<WalletItemResponse>("/balances/wallets", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const updateMyWallet = async (walletID: string, body: UpdateWalletRequest) => {
+    return await requestWithAuth<WalletItemResponse>(`/balances/wallets/${walletID}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const deleteMyWallet = async (walletID: string) => {
+    return await requestWithAuth<unknown>(`/balances/wallets/${walletID}`, {
+      method: "DELETE",
+    });
+  };
+
+  const listMyCategories = async (params?: { page?: number; size?: number; type?: CategoryType }) => {
+    const page = params?.page || 1;
+    const size = params?.size || 200;
+    const query = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+
+    if (params?.type) {
+      query.set("type", params.type);
+    }
+
+    const res = await requestWithAuth<CategoryItemResponse[]>(`/balances/categories?${query.toString()}`, {
+      method: "GET",
+    });
+
+    return {
+      items: res.data || [],
+    };
+  };
+
+  const createMyCategory = async (body: CreateCategoryRequest) => {
+    return await requestWithAuth<CategoryItemResponse>("/balances/categories", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const deleteMyCategory = async (categoryID: string) => {
+    return await requestWithAuth<unknown>(`/balances/categories/${categoryID}`, {
+      method: "DELETE",
+    });
+  };
+
+  const updateMyCategory = async (categoryID: string, body: UpdateCategoryRequest) => {
+    return await requestWithAuth<CategoryItemResponse>(`/balances/categories/${categoryID}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const listMyBudgets = async (params?: {
+    page?: number;
+    size?: number;
+    period?: BudgetPeriod;
+    categoryID?: string;
+  }) => {
+    const page = params?.page || 1;
+    const size = params?.size || 200;
+    const query = new URLSearchParams({
+      page: String(page),
+      size: String(size),
+    });
+
+    if (params?.period) {
+      query.set("period", params.period);
+    }
+
+    if (params?.categoryID) {
+      query.set("category_id", params.categoryID);
+    }
+
+    const res = await requestWithAuth<BudgetListResponseData | BudgetItemResponse[]>(`/balances/budgets?${query.toString()}`, {
+      method: "GET",
+    });
+
+    const data = res.data;
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        totalNetWorth: 0,
+      };
+    }
+
+    return {
+      items: data?.items || [],
+      totalNetWorth: Number(data?.total_net_worth || 0),
+    };
+  };
+
+  const createMyBudget = async (body: CreateBudgetRequest) => {
+    return await requestWithAuth<BudgetItemResponse>("/balances/budgets", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const updateMyBudget = async (budgetID: string, body: UpdateBudgetRequest) => {
+    return await requestWithAuth<BudgetItemResponse>(`/balances/budgets/${budgetID}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const deleteMyBudget = async (budgetID: string) => {
+    return await requestWithAuth<unknown>(`/balances/budgets/${budgetID}`, {
+      method: "DELETE",
+    });
+  };
+
+  const recalculateAllBudgets = async () => {
+    return await requestWithAuth<RecalculateAllBudgetsResponse>("/balances/budgets/recalculate-all", {
+      method: "POST",
+    });
+  };
+
   return {
     clearSession,
     getAccessToken,
@@ -453,6 +712,19 @@ export const useAuthApi = () => {
     updateMySettings,
     updateMyNotificationSettings,
     getSystemManifest,
+    listMyWallets,
+    createMyWallet,
+    updateMyWallet,
+    deleteMyWallet,
+    listMyCategories,
+    createMyCategory,
+    deleteMyCategory,
+    updateMyCategory,
+    listMyBudgets,
+    createMyBudget,
+    updateMyBudget,
+    deleteMyBudget,
+    recalculateAllBudgets,
     loginMember,
     refreshMemberToken,
     registerMember,

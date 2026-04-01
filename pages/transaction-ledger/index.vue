@@ -232,7 +232,14 @@
             <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">
               Total Net Worth
             </p>
-            <p class="text-2xl font-medium tracking-tight">฿ 142,500.00</p>
+            <p class="text-2xl font-medium tracking-tight">
+              ฿
+              {{
+                headerTotalNetWorth.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })
+              }}
+            </p>
           </div>
           <button
             @click="goTo('record')"
@@ -619,7 +626,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
+import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 const mobileSidebarOpen = ref(false);
@@ -629,6 +637,7 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 
 // Mock Data for Dashboard
 const wallets = [
@@ -636,6 +645,15 @@ const wallets = [
   { id: 2, name: "Cash on Hand", balance: 2500 },
   { id: 3, name: "Investment Port", balance: 20000 },
 ];
+
+const headerTotalNetWorth = computed(() => {
+  const fallback = wallets.reduce((acc, curr) => acc + curr.balance, 0);
+  return totalNetWorthFromAPI.value ?? fallback;
+});
+
+onMounted(() => {
+  void refreshTotalNetWorth();
+});
 
 // Extended Mock Data for History & Pagination
 const allTransactions = [

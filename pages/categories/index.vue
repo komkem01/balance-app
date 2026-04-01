@@ -232,7 +232,14 @@
             <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">
               Total Net Worth
             </p>
-            <p class="text-2xl font-medium tracking-tight">฿ 142,500.00</p>
+            <p class="text-2xl font-medium tracking-tight">
+              ฿
+              {{
+                headerTotalNetWorth.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                })
+              }}
+            </p>
           </div>
           <button
             @click="goTo('record')"
@@ -639,11 +646,32 @@
                     </button>
                   </div>
                 </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Category Color</label
+                  >
+                  <div class="flex flex-wrap gap-3 px-1">
+                    <button
+                      v-for="color in categoryColorChoices"
+                      :key="`create-${color}`"
+                      type="button"
+                      @click="newCategory.colorCode = color"
+                      :class="[
+                        'h-7 w-7 rounded-full border-2 transition-all',
+                        newCategory.colorCode === color ? 'border-slate-900 scale-110' : 'border-white'
+                      ]"
+                      :style="{ backgroundColor: color }"
+                      :aria-label="`Select category color ${color}`"
+                    ></button>
+                  </div>
+                </div>
                 <button
                   type="submit"
+                  :disabled="categoriesSaving || categoriesLoading"
                   class="w-full py-5 bg-indigo-500 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-lg shadow-indigo-100 hover:bg-indigo-600 transition-all mt-4"
                 >
-                  Add Classification
+                  {{ categoriesSaving ? "Archiving..." : "Archive Asset" }}
                 </button>
               </form>
             </div>
@@ -734,32 +762,144 @@
                 </div>
               </div>
 
+              <p v-if="categoriesLoading" class="mb-4 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Loading categories...
+              </p>
+              <p v-else-if="categoriesError" class="mb-4 text-[10px] font-bold uppercase tracking-widest text-rose-500">
+                {{ categoriesError }}
+              </p>
+
+              <div
+                v-if="categoryEditOpen"
+                class="mb-6 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-5 space-y-4"
+              >
+                <div class="flex items-center justify-between">
+                  <h5 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    Edit Asset
+                  </h5>
+                  <button
+                    type="button"
+                    @click="cancelCategoryEdit"
+                    class="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <input
+                  v-model="editCategory.name"
+                  type="text"
+                  placeholder="Category name"
+                  class="w-full px-4 py-3 bg-white border border-transparent rounded-xl outline-none focus:border-slate-200 transition-all text-sm"
+                />
+
+                <div class="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    @click="editCategory.type = 'income'"
+                    :class="[
+                      'py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all',
+                      editCategory.type === 'income'
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-white text-slate-500 hover:bg-slate-100',
+                    ]"
+                  >
+                    Income
+                  </button>
+                  <button
+                    type="button"
+                    @click="editCategory.type = 'expense'"
+                    :class="[
+                      'py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all',
+                      editCategory.type === 'expense'
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-white text-slate-500 hover:bg-slate-100',
+                    ]"
+                  >
+                    Expense
+                  </button>
+                </div>
+
+                <div class="flex flex-wrap gap-3">
+                  <button
+                    v-for="color in categoryColorChoices"
+                    :key="`edit-${color}`"
+                    type="button"
+                    @click="editCategory.colorCode = color"
+                    :class="[
+                      'h-7 w-7 rounded-full border-2 transition-all',
+                      editCategory.colorCode === color ? 'border-slate-900 scale-110' : 'border-white'
+                    ]"
+                    :style="{ backgroundColor: color }"
+                    :aria-label="`Select color ${color}`"
+                  ></button>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    @click="cancelCategoryEdit"
+                    class="px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    @click="requestUpdateCategory"
+                    class="px-4 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+
               <div class="space-y-4">
                 <div
                   v-for="cat in filteredCategories"
                   :key="cat.id"
-                  class="group flex justify-between items-center p-6 bg-slate-50 rounded-[1.5rem] hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all border border-transparent hover:border-slate-50"
+                  class="group p-8 bg-slate-50 rounded-[2rem] hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all border border-transparent hover:border-slate-50 flex justify-between items-center"
                 >
-                  <div class="flex items-center space-x-4">
+                  <div class="flex items-center gap-3">
                     <div
-                      :class="[
-                        'w-2 h-2 rounded-full',
-                        cat.type === 'income'
-                          ? 'bg-emerald-400'
-                          : 'bg-rose-400',
-                      ]"
+                      class="h-4 w-4 rounded-full ring-2 ring-white"
+                      :style="{ backgroundColor: cat.colorCode }"
                     ></div>
-                    <span
-                      class="text-sm font-medium text-slate-700 tracking-tight"
-                      >{{ cat.name }}</span
-                    >
+                    <div>
+                      <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">
+                        Category
+                      </p>
+                      <p class="text-base font-medium text-slate-900 tracking-tight">
+                        {{ cat.name }}
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    class="text-[9px] font-bold text-slate-300 uppercase tracking-widest opacity-0 group-hover:opacity-100 hover:text-rose-500 transition-all"
-                  >
-                    Remove
-                  </button>
+                  <div class="text-right">
+                    <p class="text-lg font-light tracking-tighter text-slate-900 uppercase">
+                      {{ cat.type }}
+                    </p>
+                    <div class="mt-1 flex items-center justify-end gap-3 action-reveal">
+                      <button
+                        type="button"
+                        @click="startCategoryEdit(cat)"
+                        :disabled="categoriesDeletingID === cat.id || categoriesLoading"
+                        class="text-[9px] font-bold text-slate-500 uppercase tracking-widest"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        @click="requestDeleteCategory(cat)"
+                        :disabled="categoriesDeletingID === cat.id || categoriesLoading"
+                        class="text-[9px] font-bold text-rose-500 uppercase tracking-widest"
+                      >
+                        {{ categoriesDeletingID === cat.id ? "Detaching..." : "Detach" }}
+                      </button>
+                    </div>
+                  </div>
                 </div>
+                <p v-if="!categoriesLoading && !categoriesError && filteredCategories.length === 0" class="text-sm text-slate-400">
+                  No categories found.
+                </p>
               </div>
             </div>
           </div>
@@ -802,11 +942,24 @@
       @confirm="confirmLogout"
       @cancel="cancelLogout"
     />
+
+    <AppConfirmModal
+      :open="categoryConfirmOpen"
+      :title="categoryConfirmTitle"
+      :description="categoryConfirmDescription"
+      :confirm-label="categoryConfirmLabel"
+      cancel-label="Cancel"
+      @update:open="cancelCategoryConfirm"
+      @confirm="confirmCategoryAction"
+      @cancel="cancelCategoryConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
+import { useAuthApi } from "../../composables/useAuthApi";
+import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 const mobileSidebarOpen = ref(false);
@@ -816,6 +969,8 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { listMyCategories, createMyCategory, deleteMyCategory, updateMyCategory } = useAuthApi();
+const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 
 // Mock Data for Dashboard
 const wallets = [
@@ -965,21 +1120,47 @@ const allTransactions = [
 
 const recentTransactionsSnapshot = computed(() => allTransactions.slice(0, 3));
 
+const headerTotalNetWorth = computed(() => {
+  const fallback = wallets.reduce((acc, curr) => acc + curr.balance, 0);
+  return totalNetWorthFromAPI.value ?? fallback;
+});
+
 // Categories State & Logic
-const categories = ref([
-  { id: 1, name: "Food & Drink", type: "expense" },
-  { id: 2, name: "Salary", type: "income" },
-  { id: 3, name: "Transport", type: "expense" },
-  { id: 4, name: "Freelance", type: "income" },
-  { id: 5, name: "Subscription", type: "expense" },
-  { id: 6, name: "Health", type: "expense" },
-]);
+const categories = ref<Array<{ id: string; name: string; type: "income" | "expense"; colorCode: string }>>([]);
+const categoriesLoading = ref(false);
+const categoriesSaving = ref(false);
+const categoriesDeletingID = ref("");
+const categoriesError = ref("");
+const categoryEditOpen = ref(false);
+const editCategory = reactive<{ id: string; name: string; type: "income" | "expense"; colorCode: string }>({
+  id: "",
+  name: "",
+  type: "expense",
+  colorCode: "#0F172A",
+});
+const categoryConfirmOpen = ref(false);
+const categoryConfirmTitle = ref("Confirm Action");
+const categoryConfirmDescription = ref("");
+const categoryConfirmLabel = ref("Confirm");
+const categoryConfirmAction = ref<"delete" | "update" | "">("");
+const categoryPendingID = ref("");
 
 const categoryFilter = ref("all");
 const newCategory = reactive({
   name: "",
   type: "expense",
+  colorCode: "#0F172A",
 });
+const categoryColorChoices = [
+  "#0F172A",
+  "#2563EB",
+  "#7C3AED",
+  "#EC4899",
+  "#DC2626",
+  "#EA580C",
+  "#16A34A",
+  "#0891B2",
+];
 
 const filteredCategories = computed(() => {
   if (categoryFilter.value === "all") return categories.value;
@@ -987,14 +1168,167 @@ const filteredCategories = computed(() => {
 });
 
 const addCategory = () => {
-  if (!newCategory.name) return;
-  categories.value.unshift({
-    id: Date.now(),
-    name: newCategory.name,
-    type: newCategory.type,
-  });
-  newCategory.name = "";
+  void addCategoryRequest();
 };
+
+const normalizeCategoryError = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "category-request-failed";
+};
+
+const loadCategories = async () => {
+  categoriesLoading.value = true;
+  categoriesError.value = "";
+
+  try {
+    const res = await listMyCategories({ page: 1, size: 300 });
+    categories.value = (res.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      colorCode: item.color_code || "#0F172A",
+    }));
+  } catch (error) {
+    categoriesError.value = normalizeCategoryError(error);
+  } finally {
+    categoriesLoading.value = false;
+  }
+};
+
+const addCategoryRequest = async () => {
+  const name = newCategory.name.trim();
+  if (!name) {
+    return;
+  }
+
+  categoriesSaving.value = true;
+  categoriesError.value = "";
+
+  try {
+    const res = await createMyCategory({
+      name,
+      type: newCategory.type as "income" | "expense",
+      color_code: newCategory.colorCode,
+    });
+
+    categories.value.unshift({
+      id: res.data.id,
+      name: res.data.name,
+      type: res.data.type,
+      colorCode: res.data.color_code || newCategory.colorCode,
+    });
+
+    newCategory.name = "";
+    newCategory.colorCode = "#0F172A";
+  } catch (error) {
+    categoriesError.value = normalizeCategoryError(error);
+  } finally {
+    categoriesSaving.value = false;
+  }
+};
+
+const removeCategory = async (categoryID: string) => {
+  if (!categoryID) {
+    return;
+  }
+
+  categoriesDeletingID.value = categoryID;
+  categoriesError.value = "";
+
+  try {
+    await deleteMyCategory(categoryID);
+    categories.value = categories.value.filter((item) => item.id !== categoryID);
+  } catch (error) {
+    categoriesError.value = normalizeCategoryError(error);
+  } finally {
+    categoriesDeletingID.value = "";
+  }
+};
+
+const startCategoryEdit = (cat: { id: string; name: string; type: "income" | "expense"; colorCode: string }) => {
+  categoryEditOpen.value = true;
+  editCategory.id = cat.id;
+  editCategory.name = cat.name;
+  editCategory.type = cat.type;
+  editCategory.colorCode = cat.colorCode;
+};
+
+const cancelCategoryEdit = () => {
+  categoryEditOpen.value = false;
+  editCategory.id = "";
+  editCategory.name = "";
+  editCategory.type = "expense";
+  editCategory.colorCode = "#0F172A";
+};
+
+const requestDeleteCategory = (cat: { id: string; name: string }) => {
+  categoryPendingID.value = cat.id;
+  categoryConfirmAction.value = "delete";
+  categoryConfirmTitle.value = "Confirm Delete Category";
+  categoryConfirmDescription.value = `Delete category ${cat.name}?`;
+  categoryConfirmLabel.value = "Delete";
+  categoryConfirmOpen.value = true;
+};
+
+const requestUpdateCategory = () => {
+  if (!editCategory.id || !editCategory.name.trim()) {
+    categoriesError.value = "category-name-required";
+    return;
+  }
+
+  categoryConfirmAction.value = "update";
+  categoryConfirmTitle.value = "Confirm Update Category";
+  categoryConfirmDescription.value = "Save changes to this category?";
+  categoryConfirmLabel.value = "Save";
+  categoryConfirmOpen.value = true;
+};
+
+const confirmCategoryAction = async () => {
+  try {
+    if (categoryConfirmAction.value === "delete" && categoryPendingID.value) {
+      await removeCategory(categoryPendingID.value);
+      categoryPendingID.value = "";
+    }
+
+    if (categoryConfirmAction.value === "update" && editCategory.id) {
+      const res = await updateMyCategory(editCategory.id, {
+        name: editCategory.name.trim(),
+        type: editCategory.type,
+        color_code: editCategory.colorCode,
+      });
+
+      categories.value = categories.value.map((item) =>
+        item.id === editCategory.id
+          ? {
+              id: res.data.id,
+              name: res.data.name,
+              type: res.data.type,
+              colorCode: res.data.color_code || editCategory.colorCode,
+            }
+          : item,
+      );
+
+      cancelCategoryEdit();
+    }
+  } catch (error) {
+    categoriesError.value = normalizeCategoryError(error);
+  } finally {
+    categoryConfirmOpen.value = false;
+    categoryConfirmAction.value = "";
+  }
+};
+
+const cancelCategoryConfirm = () => {
+  categoryConfirmOpen.value = false;
+  categoryConfirmAction.value = "";
+  categoryPendingID.value = "";
+};
+
+onMounted(async () => {
+  await Promise.all([loadCategories(), refreshTotalNetWorth()]);
+});
 
 // Pagination State
 const currentPage = ref(1);
@@ -1084,6 +1418,21 @@ main::-webkit-scrollbar {
 
 .animate-in {
   animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.action-reveal {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.group:hover .action-reveal {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .action-reveal {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {

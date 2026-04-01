@@ -235,7 +235,7 @@
             <p class="text-2xl font-medium tracking-tight">
               ฿
               {{
-                totalNetWorth.toLocaleString(undefined, {
+                headerTotalNetWorth.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                 })
               }}
@@ -389,11 +389,17 @@
                   class="group cursor-pointer"
                 >
                   <div class="flex justify-between items-end mb-2">
-                    <p
-                      class="text-[10px] text-slate-400 uppercase tracking-widest"
-                    >
-                      {{ wallet.name }}
-                    </p>
+                    <div class="flex items-center gap-2">
+                      <div
+                        class="h-2.5 w-2.5 rounded-full"
+                        :style="{ backgroundColor: wallet.colorCode }"
+                      ></div>
+                      <p
+                        class="text-[10px] text-slate-400 uppercase tracking-widest"
+                      >
+                        {{ wallet.name }}
+                      </p>
+                    </div>
                     <span
                       class="text-[8px] text-slate-600 group-hover:text-indigo-400 transition-colors"
                       >DETAILS</span
@@ -466,7 +472,7 @@
               >
                 Register New Asset
               </h4>
-              <form @submit.prevent="addWallet" class="space-y-6">
+              <form @submit.prevent="requestCreateWallet" class="space-y-6">
                 <div class="space-y-2">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
@@ -489,6 +495,8 @@
                     v-model.number="newWallet.balance"
                     type="number"
                     placeholder="0.00"
+                    min="0"
+                    step="0.01"
                     class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
                     required
                   />
@@ -507,11 +515,32 @@
                     menu-class="w-full"
                   />
                 </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Wallet Color</label
+                  >
+                  <div class="flex flex-wrap gap-3 px-1">
+                    <button
+                      v-for="color in walletColorChoices"
+                      :key="color"
+                      type="button"
+                      @click="newWallet.colorCode = color"
+                      :class="[
+                        'h-8 w-8 rounded-full border-2 transition-all',
+                        newWallet.colorCode === color ? 'border-slate-900 scale-110' : 'border-white'
+                      ]"
+                      :style="{ backgroundColor: color }"
+                      :aria-label="`Select wallet color ${color}`"
+                    ></button>
+                  </div>
+                </div>
                 <button
                   type="submit"
-                  class="w-full py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all mt-4"
+                  :disabled="walletSaving || walletsLoading"
+                  class="w-full py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all mt-4 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  Archive Asset
+                  {{ walletSaving ? "Archiving..." : "Archive Asset" }}
                 </button>
               </form>
             </div>
@@ -527,13 +556,95 @@
               >
                 Asset Inventory
               </h4>
+              <p v-if="walletsLoading" class="mb-5 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Loading wallet archive...
+              </p>
+              <p v-else-if="walletError" class="mb-5 text-[10px] font-bold uppercase tracking-widest text-rose-500">
+                {{ walletError }}
+              </p>
+              <div
+                v-if="walletEditOpen"
+                class="mb-6 rounded-[1.5rem] border border-slate-100 bg-slate-50 p-6 space-y-4"
+              >
+                <div class="flex items-center justify-between">
+                  <h5 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    Edit Asset
+                  </h5>
+                  <button
+                    @click="cancelWalletEdit"
+                    type="button"
+                    class="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    v-model="editWallet.name"
+                    type="text"
+                    placeholder="Asset Name"
+                    class="w-full px-4 py-3 bg-white border border-transparent rounded-xl outline-none focus:border-slate-200 transition-all text-sm"
+                  />
+                  <input
+                    v-model.number="editWallet.balance"
+                    type="number"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    class="w-full px-4 py-3 bg-white border border-transparent rounded-xl outline-none focus:border-slate-200 transition-all text-sm"
+                  />
+                </div>
+                <AppDropdown
+                  v-model="editWallet.currency"
+                  label="Select Currency"
+                  :items="currencyDropdownItems"
+                  unstyled
+                  trigger-class="w-full flex items-center justify-between px-4 py-3 bg-white border border-transparent rounded-xl outline-none focus-within:border-slate-200 transition-all text-sm"
+                  menu-class="w-full"
+                />
+                <div class="flex flex-wrap gap-3">
+                  <button
+                    v-for="color in walletColorChoices"
+                    :key="`edit-${color}`"
+                    type="button"
+                    @click="editWallet.colorCode = color"
+                    :class="[
+                      'h-7 w-7 rounded-full border-2 transition-all',
+                      editWallet.colorCode === color ? 'border-slate-900 scale-110' : 'border-white'
+                    ]"
+                    :style="{ backgroundColor: color }"
+                    :aria-label="`Select wallet color ${color}`"
+                  ></button>
+                </div>
+                <div class="flex justify-end gap-2">
+                  <button
+                    @click="cancelWalletEdit"
+                    type="button"
+                    class="px-4 py-2 rounded-xl border border-slate-200 text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    @click="requestUpdateWallet"
+                    type="button"
+                    class="px-4 py-2 rounded-xl bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
               <div class="space-y-4">
                 <div
                   v-for="wallet in wallets"
                   :key="wallet.id"
                   class="group p-8 bg-slate-50 rounded-[2rem] hover:bg-white hover:shadow-xl hover:shadow-slate-100 transition-all border border-transparent hover:border-slate-50 flex justify-between items-center"
                 >
-                  <div>
+                  <div class="flex items-center gap-3">
+                    <div
+                      class="h-4 w-4 rounded-full ring-2 ring-white"
+                      :style="{ backgroundColor: wallet.colorCode }"
+                    ></div>
+                    <div>
                     <p
                       class="text-[9px] text-slate-400 uppercase tracking-widest mb-1"
                     >
@@ -544,6 +655,7 @@
                     >
                       {{ wallet.name }}
                     </p>
+                    </div>
                   </div>
                   <div class="text-right">
                     <p
@@ -556,13 +668,27 @@
                         })
                       }}
                     </p>
-                    <button
-                      class="text-[9px] font-bold text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all mt-1"
-                    >
-                      Detach
-                    </button>
+                    <div class="mt-1 flex items-center justify-end gap-3 action-reveal">
+                      <button
+                        @click="startWalletEdit(wallet)"
+                        :disabled="walletDeletingID === wallet.id || walletsLoading"
+                        class="text-[9px] font-bold text-slate-500 uppercase tracking-widest"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        @click="requestDeleteWallet(wallet)"
+                        :disabled="walletDeletingID === wallet.id || walletsLoading"
+                        class="text-[9px] font-bold text-rose-500 uppercase tracking-widest"
+                      >
+                        {{ walletDeletingID === wallet.id ? "Detaching..." : "Detach" }}
+                      </button>
+                    </div>
                   </div>
                 </div>
+                <p v-if="!walletsLoading && !walletError && wallets.length === 0" class="text-sm text-slate-400">
+                  No wallets found. Create your first wallet.
+                </p>
               </div>
             </div>
           </div>
@@ -874,7 +1000,7 @@
                     >
                   </div>
                   <button
-                    class="text-[9px] font-bold text-slate-300 uppercase tracking-widest opacity-0 group-hover:opacity-100 hover:text-rose-500 transition-all"
+                    class="text-[9px] font-bold text-slate-300 uppercase tracking-widest action-reveal hover:text-rose-500 transition-all"
                   >
                     Remove
                   </button>
@@ -921,12 +1047,33 @@
       @confirm="confirmLogout"
       @cancel="cancelLogout"
     />
+
+    <AppConfirmModal
+      :open="walletConfirmOpen"
+      :title="walletConfirmTitle"
+      :description="walletConfirmDescription"
+      :confirm-label="walletActionLoading ? 'Processing...' : walletConfirmLabel"
+      cancel-label="Cancel"
+      @update:open="cancelWalletConfirm"
+      @confirm="confirmWalletAction"
+      @cancel="cancelWalletConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
+import { useAuthApi } from "../../composables/useAuthApi";
+import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
+
+type WalletItem = {
+  id: string;
+  name: string;
+  balance: number;
+  currency: string;
+  colorCode: string;
+};
 
 const mobileSidebarOpen = ref(false);
 const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
@@ -935,22 +1082,45 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
+const { listMyWallets, createMyWallet, updateMyWallet, deleteMyWallet } = useAuthApi();
+const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 
 // Wallets State & Logic
-const wallets = ref([
-  { id: 1, name: "Main Savings", balance: 120000, currency: "THB" },
-  { id: 2, name: "Cash on Hand", balance: 2500, currency: "THB" },
-  { id: 3, name: "Investment Port", balance: 20000, currency: "THB" },
-]);
+const wallets = ref<WalletItem[]>([]);
+const walletsLoading = ref(false);
+const walletSaving = ref(false);
+const walletDeletingID = ref("");
+const walletError = ref("");
+const walletConfirmOpen = ref(false);
+const walletConfirmTitle = ref("Confirm Action");
+const walletConfirmDescription = ref("");
+const walletConfirmLabel = ref("Confirm");
+const walletConfirmAction = ref<"create" | "update" | "delete" | "">("");
+const walletActionLoading = ref(false);
+const pendingWalletID = ref("");
+
+const walletEditOpen = ref(false);
+const editWallet = reactive({
+  id: "",
+  name: "",
+  balance: 0,
+  currency: "THB",
+  colorCode: "#0F172A",
+});
 
 const newWallet = reactive({
   name: "",
   balance: 0,
   currency: "THB",
+  colorCode: "#0F172A",
 });
 
 const totalNetWorth = computed(() => {
   return wallets.value.reduce((acc, curr) => acc + curr.balance, 0);
+});
+
+const headerTotalNetWorth = computed(() => {
+  return totalNetWorthFromAPI.value ?? totalNetWorth.value;
 });
 
 const currencyDropdownItems = [
@@ -958,18 +1128,254 @@ const currencyDropdownItems = [
   { label: "USD - US Dollar", value: "USD" },
 ];
 
-const addWallet = () => {
-  if (!newWallet.name) return;
-  wallets.value.unshift({
-    id: Date.now(),
-    name: newWallet.name,
-    balance: newWallet.balance,
-    currency: newWallet.currency,
-  });
-  // Reset form
-  newWallet.name = "";
-  newWallet.balance = 0;
+const walletColorChoices = [
+  "#0F172A",
+  "#2563EB",
+  "#7C3AED",
+  "#EC4899",
+  "#DC2626",
+  "#EA580C",
+  "#16A34A",
+  "#0891B2",
+];
+
+const normalizeWalletError = (error: unknown) => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+  return "wallet-request-failed";
 };
+
+const isValidTwoDecimalAmount = (amount: number) => {
+  if (!Number.isFinite(amount)) {
+    return false;
+  }
+
+  return Math.abs(amount * 100 - Math.round(amount * 100)) < 1e-8;
+};
+
+const normalizeTwoDecimalAmount = (amount: number) => {
+  return Math.round(amount * 100) / 100;
+};
+
+const validateWalletPayload = (payload: { name: string; balance: number }) => {
+  if (!payload.name.trim()) {
+    return "wallet-name-required";
+  }
+
+  if (!Number.isFinite(payload.balance) || payload.balance < 0) {
+    return "wallet-balance-must-be-non-negative";
+  }
+
+  if (!isValidTwoDecimalAmount(payload.balance)) {
+    return "wallet-balance-must-have-two-decimals";
+  }
+
+  return "";
+};
+
+const loadWallets = async () => {
+  walletsLoading.value = true;
+  walletError.value = "";
+
+  try {
+    const res = await listMyWallets({ page: 1, size: 200, isActive: true });
+    wallets.value = (res.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      balance: Number(item.balance || 0),
+      currency: item.currency || "THB",
+      colorCode: item.color_code || "#0F172A",
+    }));
+  } catch (error) {
+    walletError.value = normalizeWalletError(error);
+  } finally {
+    walletsLoading.value = false;
+  }
+};
+
+const addWallet = async () => {
+  if (!newWallet.name) return;
+
+  walletSaving.value = true;
+  walletError.value = "";
+
+  try {
+    const res = await createMyWallet({
+      name: newWallet.name.trim(),
+      balance: normalizeTwoDecimalAmount(Number(newWallet.balance || 0)),
+      currency: newWallet.currency || "THB",
+      color_code: newWallet.colorCode,
+    });
+
+    wallets.value.unshift({
+      id: res.data.id,
+      name: res.data.name,
+      balance: Number(res.data.balance || 0),
+      currency: res.data.currency || "THB",
+      colorCode: res.data.color_code || newWallet.colorCode,
+    });
+
+    newWallet.name = "";
+    newWallet.balance = 0;
+    newWallet.currency = "THB";
+    newWallet.colorCode = "#0F172A";
+  } catch (error) {
+    walletError.value = normalizeWalletError(error);
+  } finally {
+    walletSaving.value = false;
+  }
+};
+
+const requestCreateWallet = () => {
+  const validationError = validateWalletPayload({
+    name: newWallet.name,
+    balance: Number(newWallet.balance || 0),
+  });
+
+  if (validationError) {
+    walletError.value = validationError;
+    return;
+  }
+
+  walletConfirmAction.value = "create";
+  walletConfirmTitle.value = "Confirm Create Wallet";
+  walletConfirmDescription.value = "Create this wallet with current information?";
+  walletConfirmLabel.value = "Create";
+  walletConfirmOpen.value = true;
+};
+
+const startWalletEdit = (wallet: WalletItem) => {
+  walletEditOpen.value = true;
+  editWallet.id = wallet.id;
+  editWallet.name = wallet.name;
+  editWallet.balance = wallet.balance;
+  editWallet.currency = wallet.currency;
+  editWallet.colorCode = wallet.colorCode;
+};
+
+const cancelWalletEdit = () => {
+  walletEditOpen.value = false;
+  editWallet.id = "";
+  editWallet.name = "";
+  editWallet.balance = 0;
+  editWallet.currency = "THB";
+  editWallet.colorCode = "#0F172A";
+};
+
+const requestUpdateWallet = () => {
+  if (!editWallet.id) {
+    return;
+  }
+
+  const validationError = validateWalletPayload({
+    name: editWallet.name,
+    balance: Number(editWallet.balance || 0),
+  });
+
+  if (validationError) {
+    walletError.value = validationError;
+    return;
+  }
+
+  walletConfirmAction.value = "update";
+  walletConfirmTitle.value = "Confirm Update Wallet";
+  walletConfirmDescription.value = "Save changes to this wallet?";
+  walletConfirmLabel.value = "Save";
+  walletConfirmOpen.value = true;
+};
+
+const requestDeleteWallet = (wallet: WalletItem) => {
+  pendingWalletID.value = wallet.id;
+  walletConfirmAction.value = "delete";
+  walletConfirmTitle.value = "Confirm Delete Wallet";
+  walletConfirmDescription.value = `Delete wallet ${wallet.name}?`;
+  walletConfirmLabel.value = "Delete";
+  walletConfirmOpen.value = true;
+};
+
+const detachWallet = async (walletID: string) => {
+  if (!walletID) {
+    return;
+  }
+
+  walletDeletingID.value = walletID;
+  walletError.value = "";
+
+  try {
+    await deleteMyWallet(walletID);
+    wallets.value = wallets.value.filter((wallet) => wallet.id !== walletID);
+  } catch (error) {
+    walletError.value = normalizeWalletError(error);
+  } finally {
+    walletDeletingID.value = "";
+  }
+};
+
+const confirmWalletAction = async () => {
+  if (!walletConfirmAction.value) {
+    walletConfirmOpen.value = false;
+    return;
+  }
+
+  walletActionLoading.value = true;
+  walletError.value = "";
+
+  try {
+    if (walletConfirmAction.value === "create") {
+      await addWallet();
+    }
+
+    if (walletConfirmAction.value === "update" && editWallet.id) {
+      const res = await updateMyWallet(editWallet.id, {
+        name: editWallet.name.trim(),
+        balance: normalizeTwoDecimalAmount(Number(editWallet.balance || 0)),
+        currency: editWallet.currency || "THB",
+        color_code: editWallet.colorCode,
+      });
+
+      wallets.value = wallets.value.map((wallet) =>
+        wallet.id === editWallet.id
+          ? {
+              id: res.data.id,
+              name: res.data.name,
+              balance: Number(res.data.balance || 0),
+              currency: res.data.currency || "THB",
+              colorCode: res.data.color_code || editWallet.colorCode,
+            }
+          : wallet,
+      );
+
+      cancelWalletEdit();
+    }
+
+    if (walletConfirmAction.value === "delete" && pendingWalletID.value) {
+      await detachWallet(pendingWalletID.value);
+      pendingWalletID.value = "";
+    }
+
+    walletConfirmOpen.value = false;
+    walletConfirmAction.value = "";
+  } catch (error) {
+    walletError.value = normalizeWalletError(error);
+  } finally {
+    walletActionLoading.value = false;
+  }
+};
+
+const cancelWalletConfirm = () => {
+  if (walletActionLoading.value) {
+    return;
+  }
+
+  walletConfirmOpen.value = false;
+  walletConfirmAction.value = "";
+  pendingWalletID.value = "";
+};
+
+onMounted(async () => {
+  await Promise.all([loadWallets(), refreshTotalNetWorth()]);
+});
 
 // Extended Mock Data for History & Pagination
 const allTransactions = [
@@ -1231,6 +1637,21 @@ main::-webkit-scrollbar {
 
 .animate-in {
   animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.action-reveal {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.group:hover .action-reveal {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .action-reveal {
+    opacity: 1;
+  }
 }
 
 @keyframes slideIn {
