@@ -609,7 +609,7 @@ const _routes = [
   {
     name: "dashboard",
     path: "/dashboard",
-    component: () => import('./index-X5g8UyRb.mjs')
+    component: () => import('./index-CEyw-l2m.mjs')
   },
   {
     name: "new-entry",

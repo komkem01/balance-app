@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+:root {
+	--app-btn-primary: #0a1633;
+	--app-btn-primary-hover: #0d1d45;
+}
+
+button.bg-slate-900,
+button.bg-indigo-500,
+a.bg-slate-900,
+a.bg-indigo-500,
+input[type="button"].bg-slate-900,
+input[type="button"].bg-indigo-500,
+input[type="submit"].bg-slate-900,
+input[type="submit"].bg-indigo-500 {
+	background-color: var(--app-btn-primary) !important;
+}
+
+button.hover\:bg-slate-800:hover,
+button.hover\:bg-indigo-600:hover,
+a.hover\:bg-slate-800:hover,
+a.hover\:bg-indigo-600:hover,
+input[type="button"].hover\:bg-slate-800:hover,
+input[type="button"].hover\:bg-indigo-600:hover,
+input[type="submit"].hover\:bg-slate-800:hover,
+input[type="submit"].hover\:bg-indigo-600:hover {
+	background-color: var(--app-btn-primary-hover) !important;
+}

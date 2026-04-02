@@ -7,6 +7,7 @@
     "@babel/parser": "7.29.2",
     "@iconify/utils": "3.1.0",
     "@iconify/vue": "5.0.0",
+    "@kurkle/color": "0.3.4",
     "@vue/compiler-core": "3.5.31",
     "@vue/compiler-dom": "3.5.31",
     "@vue/compiler-ssr": "3.5.31",
@@ -19,6 +20,7 @@
     "@vue/server-renderer": "3.5.31",
     "@vue/shared": "3.5.31",
     "birpc": "2.9.0",
+    "chart.js": "4.5.1",
     "consola": "3.4.2",
     "devalue": "5.6.4",
     "entities": "7.0.1",
@@ -31,6 +33,7 @@
     "unhead": "2.1.12",
     "vue": "3.5.31",
     "vue-bundle-renderer": "2.2.0",
+    "vue-chartjs": "5.3.3",
     "vue-router": "5.0.4"
   }
 }

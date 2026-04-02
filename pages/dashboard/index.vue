@@ -283,75 +283,27 @@
                 </h4>
                 <div class="flex space-x-4">
                   <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 rounded-full bg-slate-900"></div>
+                    <div class="w-2 h-2 rounded-full bg-emerald-500"></div>
                     <span
                       class="text-[9px] text-slate-400 uppercase tracking-widest"
-                      >High Activity</span
+                      >Income</span
                     >
                   </div>
                   <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 rounded-full bg-slate-500"></div>
+                    <div class="w-2 h-2 rounded-full bg-sky-400"></div>
                     <span
                       class="text-[9px] text-slate-400 uppercase tracking-widest"
-                      >Medium</span
-                    >
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 rounded-full bg-slate-200"></div>
-                    <span
-                      class="text-[9px] text-slate-400 uppercase tracking-widest"
-                      >Low</span
+                      >Expense</span
                     >
                   </div>
                 </div>
               </div>
               <div class="relative h-56 px-2">
-                <div
-                  class="absolute inset-x-2 inset-y-0 grid"
-                  style="grid-template-rows: repeat(5, minmax(0, 1fr));"
-                >
-                  <div
-                    v-for="marker in 5"
-                    :key="marker"
-                    class="border-b border-slate-100"
-                  ></div>
-                </div>
-
-                <div class="relative z-10 h-full flex items-end justify-between gap-3">
-                  <div
-                    v-for="month in monthlyStackBars"
-                    :key="month.key"
-                    class="flex-1 flex justify-center"
-                  >
-                    <div
-                      class="w-full max-w-10 min-w-6 rounded-t-full overflow-hidden flex flex-col-reverse"
-                      :style="{ height: `${month.height}%` }"
-                    >
-                      <div
-                        class="w-full bg-slate-900 rounded-t-full"
-                        :style="{ height: `${month.bottomSegment}%` }"
-                      ></div>
-                      <div
-                        class="w-full bg-slate-500 rounded-t-full"
-                        :style="{ height: `${month.middleSegment}%` }"
-                      ></div>
-                      <div
-                        class="w-full bg-slate-200 rounded-t-full"
-                        :style="{ height: `${month.topSegment}%` }"
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div
-                class="flex justify-between mt-5 px-2 text-[9px] text-slate-400 uppercase tracking-widest font-bold"
-              >
-                <span
-                  v-for="month in monthlyStackBars"
-                  :key="month.key"
-                >
-                  {{ month.label }}
-                </span>
+                <Line
+                  class="relative z-10 h-full w-full"
+                  :data="lineChartData"
+                  :options="lineChartOptions"
+                />
               </div>
               <div class="mt-8 flex flex-wrap items-center gap-4 border-t border-slate-100 pt-6">
                 <div class="flex items-center gap-2 rounded-full bg-slate-50 p-1">
@@ -553,9 +505,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
+import { Line } from "vue-chartjs";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Filler,
+  type ChartOptions,
+} from "chart.js";
 import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
 type TransactionType = "income" | "expense";
 
@@ -587,6 +552,7 @@ type TransactionItem = {
   wallet: string;
   date: string;
   transactionDateRaw: string | null;
+  createdAtRaw: string | null;
 };
 
 type MonthlyPerformanceItem = {
@@ -601,15 +567,6 @@ type MonthlySummaryAggregateItem = {
   income_total: number;
   expense_total: number;
   transaction_count: number;
-};
-
-type MonthlyStackBarItem = {
-  key: string;
-  label: string;
-  height: number;
-  bottomSegment: number;
-  middleSegment: number;
-  topSegment: number;
 };
 
 type ChartRange = "1 Day" | "1 Week" | "1 Month" | "1 Year" | "All Time";
@@ -693,16 +650,131 @@ const chartRangeQueryMap: Record<ChartRange, ChartRangeQuery> = {
   "All Time": "all",
 };
 
+const formatDateOnly = (value: Date) => {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getRangeDateWindow = (range: ChartRange) => {
+  const now = new Date();
+  switch (range) {
+    case "1 Day":
+      return {
+        startDate: formatDateOnly(new Date(now.getTime() - 24 * 60 * 60 * 1000)),
+        endDate: formatDateOnly(now),
+      };
+    case "1 Week":
+      return {
+        startDate: formatDateOnly(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)),
+        endDate: formatDateOnly(now),
+      };
+    case "1 Month":
+      return {
+        startDate: formatDateOnly(new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())),
+        endDate: formatDateOnly(now),
+      };
+    case "1 Year":
+      return {
+        startDate: formatDateOnly(new Date(now.getFullYear() - 1, now.getMonth(), now.getDate())),
+        endDate: formatDateOnly(now),
+      };
+    default:
+      return {
+        startDate: undefined,
+        endDate: undefined,
+      };
+  }
+};
+
 const chartSummaryQuery = computed(() => {
+  const rangeWindow = getRangeDateWindow(selectedChartRange.value);
   return {
-    startDate: undefined,
-    endDate: undefined,
+    startDate: rangeWindow.startDate,
+    endDate: rangeWindow.endDate,
     range: chartRangeQueryMap[selectedChartRange.value],
   };
 });
 
+const buildMonthlySummaryFromTransactions = () => {
+  const monthlyMap = new Map<string, MonthlySummaryAggregateItem>();
+
+  for (const item of allTransactions.value) {
+    const rawDate = item.transactionDateRaw || item.createdAtRaw;
+    if (!rawDate) {
+      continue;
+    }
+
+    const parsed = new Date(rawDate);
+    if (Number.isNaN(parsed.getTime())) {
+      continue;
+    }
+
+    const month = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}`;
+    const current = monthlyMap.get(month) || {
+      month,
+      income_total: 0,
+      expense_total: 0,
+      transaction_count: 0,
+    };
+
+    if (item.type === "income") {
+      current.income_total += Number(item.amount || 0);
+    } else {
+      current.expense_total += Number(item.amount || 0);
+    }
+    current.transaction_count += 1;
+    monthlyMap.set(month, current);
+  }
+
+  return Array.from(monthlyMap.values()).sort((a, b) => a.month.localeCompare(b.month));
+};
+
+const normalizeMonthKey = (value: string) => {
+  if (!value) {
+    return "";
+  }
+
+  if (value.length >= 7 && value[4] === "-") {
+    return value.slice(0, 7);
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  const month = String(parsed.getMonth() + 1).padStart(2, "0");
+  return `${parsed.getFullYear()}-${month}`;
+};
+
+const parseMonthKeyToDate = (value: string) => {
+  if (!value || value.length < 7) {
+    return null;
+  }
+
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  if (!Number.isFinite(year) || !Number.isFinite(month) || month < 1 || month > 12) {
+    return null;
+  }
+
+  return new Date(year, month - 1, 1);
+};
+
 const monthlyPerformance = computed<MonthlyPerformanceItem[]>(() => {
-  const now = new Date();
+  const summaryItems = monthlySummaryItems.value.length > 0
+    ? monthlySummaryItems.value
+    : buildMonthlySummaryFromTransactions();
+
+  const latestSummaryMonth = summaryItems
+    .map((item) => parseMonthKeyToDate(item.month))
+    .filter((date): date is Date => date !== null)
+    .sort((a, b) => a.getTime() - b.getTime())
+    .at(-1);
+
+  const now = latestSummaryMonth || new Date();
   const baseMonths = Array.from({ length: 12 }, (_, offset) => {
     const date = new Date(now.getFullYear(), now.getMonth() - (11 - offset), 1);
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -715,7 +787,7 @@ const monthlyPerformance = computed<MonthlyPerformanceItem[]>(() => {
   });
 
   const monthMap = new Map(baseMonths.map((item) => [item.key, item]));
-  for (const item of monthlySummaryItems.value) {
+  for (const item of summaryItems) {
     const monthItem = monthMap.get(item.month);
     if (!monthItem) {
       continue;
@@ -728,37 +800,100 @@ const monthlyPerformance = computed<MonthlyPerformanceItem[]>(() => {
   return baseMonths;
 });
 
-const chartMaxValue = computed(() => {
-  const max = Math.max(
-    ...monthlyPerformance.value.flatMap((item) => [item.income, item.expense]),
-    1,
-  );
-  return max;
-});
+const lineChartData = computed(() => ({
+  labels: monthlyPerformance.value.map((item) => item.label),
+  datasets: [
+    {
+      label: "Income",
+      data: monthlyPerformance.value.map((item) => item.income),
+      borderColor: "#10b981",
+      backgroundColor: "#10b981",
+      borderWidth: 3,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointBorderWidth: 2,
+      pointBackgroundColor: "#ffffff",
+      pointBorderColor: "#10b981",
+      tension: 0.42,
+      fill: false,
+    },
+    {
+      label: "Expense",
+      data: monthlyPerformance.value.map((item) => item.expense),
+      borderColor: "#38bdf8",
+      backgroundColor: "#38bdf8",
+      borderWidth: 3,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      pointBorderWidth: 2,
+      pointBackgroundColor: "#ffffff",
+      pointBorderColor: "#38bdf8",
+      tension: 0.42,
+      fill: false,
+    },
+  ],
+}));
 
-const monthlyStackBars = computed<MonthlyStackBarItem[]>(() => {
-  const max = chartMaxValue.value;
-
-  return monthlyPerformance.value.map((item) => {
-    const total = item.income + item.expense;
-    const height = total > 0 ? Math.max((total / max) * 100, 14) : 0;
-
-    // Split the rounded bar into three stacked layers to mimic the reference visual.
-    const expenseShare = total > 0 ? item.expense / total : 0;
-    const bottomSegment = 32 + expenseShare * 28;
-    const middleSegment = 24;
-    const topSegment = 100 - bottomSegment - middleSegment;
-
-    return {
-      key: item.key,
-      label: item.label,
-      height,
-      bottomSegment,
-      middleSegment,
-      topSegment,
-    };
-  });
-});
+const lineChartOptions = computed<ChartOptions<"line">>(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: {
+    mode: "index",
+    intersect: false,
+  },
+  plugins: {
+    legend: {
+      display: false,
+    },
+    tooltip: {
+      backgroundColor: "rgba(15, 23, 42, 0.95)",
+      padding: 10,
+      titleFont: { size: 11, weight: 700 },
+      bodyFont: { size: 11, weight: 600 },
+      callbacks: {
+        label: (ctx) => `${ctx.dataset.label}: ฿ ${Number(ctx.parsed.y || 0).toLocaleString()}`,
+      },
+    },
+  },
+  scales: {
+    x: {
+      grid: {
+        display: false,
+      },
+      ticks: {
+        color: "#94a3b8",
+        font: {
+          size: 10,
+          weight: 700,
+        },
+      },
+      border: {
+        display: false,
+      },
+    },
+    y: {
+      beginAtZero: true,
+      ticks: {
+        color: "#94a3b8",
+        font: {
+          size: 10,
+          weight: 700,
+        },
+        callback: (value) => {
+          const num = Number(value || 0);
+          return num >= 1000 ? `${Math.round(num / 1000)}K` : `${num}`;
+        },
+      },
+      grid: {
+        color: "#e2e8f0",
+        drawBorder: false,
+      },
+      border: {
+        display: false,
+      },
+    },
+  },
+}));
 
 const activeBudgets = computed(() => {
   const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
@@ -814,15 +949,29 @@ const loadTransactions = async () => {
     wallet: item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet",
     date: formatDateDisplay(item.transaction_date),
     transactionDateRaw: item.transaction_date || null,
+    createdAtRaw: item.created_at || null,
   }));
 };
 
 const loadMonthlySummary = async () => {
   chartLoading.value = true;
   try {
-    const res = await listMyTransactionMonthlySummary(chartSummaryQuery.value);
-    monthlySummaryItems.value = (res.items || []).map((item) => ({
-      month: item.month,
+    let res;
+    try {
+      res = await listMyTransactionMonthlySummary(chartSummaryQuery.value);
+    } catch {
+      // Backward compatibility for servers that do not support `range` yet.
+      res = await listMyTransactionMonthlySummary();
+    }
+
+    const rawItems = Array.isArray(res.items)
+      ? res.items
+      : (res.items && typeof res.items === "object" && "items" in (res.items as object) && Array.isArray((res.items as { items?: unknown[] }).items)
+          ? ((res.items as { items: MonthlySummaryAggregateItem[] }).items || [])
+          : []);
+
+    monthlySummaryItems.value = rawItems.map((item) => ({
+      month: normalizeMonthKey(item.month),
       income_total: Number(item.income_total || 0),
       expense_total: Number(item.expense_total || 0),
       transaction_count: Number(item.transaction_count || 0),
@@ -927,6 +1076,28 @@ main::-webkit-scrollbar {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+.chart-line-income,
+.chart-line-expense {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: lineDrawIn 0.7s ease-out forwards;
+}
+
+.chart-line-expense {
+  animation-delay: 0.08s;
+}
+
+@keyframes lineDrawIn {
+  from {
+    opacity: 0.25;
+    stroke-dashoffset: 1;
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
   }
 }
 
