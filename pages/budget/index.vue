@@ -1393,7 +1393,7 @@ const removeBudget = async (budgetID: string) => {
   }
 };
 
-const budgetDateFormatter = new Intl.DateTimeFormat("th-TH", {
+const budgetDateFormatter = new Intl.DateTimeFormat("en-US", {
   day: "2-digit",
   month: "short",
   year: "numeric",

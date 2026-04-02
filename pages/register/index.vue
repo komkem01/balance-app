@@ -195,7 +195,7 @@
           <p class="text-xs text-slate-400 font-light">
             Already have an archive? 
             <NuxtLink to="/" class="text-slate-900 font-semibold border-b border-slate-900/10 hover:border-slate-900 transition-all ml-1 pb-0.5">
-              เข้าสู่ระบบ (Login)
+              Login
             </NuxtLink>
           </p>
         </div>

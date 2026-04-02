@@ -585,7 +585,7 @@ const formatDateDisplay = (value: string | null) => {
     return value;
   }
 
-  return new Intl.DateTimeFormat("th-TH", {
+  return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",

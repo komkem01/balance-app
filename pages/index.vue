@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref, watch } from "vue"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { useAuthApi } from "../composables/useAuthApi"
 
 const REMEMBERED_USERNAME_KEY = "balance_app_remembered_username"
@@ -74,22 +74,6 @@ onMounted(() => {
     form.username = rememberedUsername
     form.remember = true
   }
-
-  const tryRefresh = async () => {
-    const refreshToken = authApi.getRefreshToken()
-    if (!refreshToken) {
-      return
-    }
-
-    try {
-      await authApi.refreshMemberToken(refreshToken)
-      await router.push("/dashboard")
-    } catch {
-      authApi.clearSession()
-    }
-  }
-
-  void tryRefresh()
 })
 
 watch(
@@ -202,7 +186,7 @@ watch(
           <p class="text-xs font-light text-slate-400">
             New to the system?
             <a href="/register" class="ml-1 border-b border-slate-900/10 pb-0.5 font-semibold text-slate-900 transition-all hover:border-slate-900">
-              ลงทะเบียน (Register)
+              Register
             </a>
           </p>
         </div>
