@@ -13,20 +13,18 @@ export default defineNuxtRouteMiddleware(async (to) => {
 
   const authApi = useAuthApi();
   const accessToken = authApi.getAccessToken().trim();
-  if (accessToken) {
+  const now = Date.now();
+  const accessExpiresAt = authApi.getAccessExpiresAt();
+  if (accessToken && accessExpiresAt > now) {
     return;
   }
 
-  const refreshToken = authApi.getRefreshToken().trim();
-  if (!refreshToken) {
-    authApi.clearSession();
-    return navigateTo("/");
-  }
-
-  try {
-    await authApi.refreshMemberToken(refreshToken);
-  } catch {
-    authApi.clearSession();
-    return navigateTo("/");
-  }
+  // If user re-enters the site and access token is already expired, force login.
+  authApi.clearSession();
+  return navigateTo({
+    path: "/",
+    query: {
+      reason: "session-expired",
+    },
+  });
 });

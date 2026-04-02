@@ -6,6 +6,7 @@ import { useAuthApi } from "../composables/useAuthApi"
 const REMEMBERED_USERNAME_KEY = "balance_app_remembered_username"
 
 const router = useRouter()
+const route = useRoute()
 const loading = ref(false)
 const message = ref("")
 const showPassword = ref(false)
@@ -57,6 +58,15 @@ async function handleLogin() {
 onMounted(() => {
   if (typeof window === "undefined") {
     return
+  }
+
+  if (route.query.reason === "session-expired") {
+    message.value = "Session expired, please login again"
+    setTimeout(() => {
+      message.value = ""
+    }, 3000)
+
+    router.replace({ path: "/" })
   }
 
   const rememberedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY)

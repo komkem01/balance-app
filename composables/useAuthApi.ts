@@ -377,15 +377,21 @@ export const useAuthApi = () => {
     }
 
     const now = Date.now();
-    localStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
-    localStorage.setItem(TOKEN_TYPE_KEY, payload.tokenType);
-    localStorage.setItem(ACCESS_EXPIRES_AT_KEY, String(now + payload.expiresIn * 1000));
-    localStorage.setItem(REFRESH_EXPIRES_AT_KEY, String(now + payload.refreshExpiresIn * 1000));
+    sessionStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
+    sessionStorage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
+    sessionStorage.setItem(TOKEN_TYPE_KEY, payload.tokenType);
+    sessionStorage.setItem(ACCESS_EXPIRES_AT_KEY, String(now + payload.expiresIn * 1000));
+    sessionStorage.setItem(REFRESH_EXPIRES_AT_KEY, String(now + payload.refreshExpiresIn * 1000));
 
-    setCookie(ACCESS_TOKEN_COOKIE, payload.accessToken, payload.expiresIn);
-    setCookie(REFRESH_TOKEN_COOKIE, payload.refreshToken, payload.refreshExpiresIn);
-    setCookie(TOKEN_TYPE_COOKIE, payload.tokenType, payload.refreshExpiresIn);
+    // Remove legacy persistent storage to avoid auto-login after browser restart.
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(TOKEN_TYPE_KEY);
+    localStorage.removeItem(ACCESS_EXPIRES_AT_KEY);
+    localStorage.removeItem(REFRESH_EXPIRES_AT_KEY);
+    removeCookie(ACCESS_TOKEN_COOKIE);
+    removeCookie(REFRESH_TOKEN_COOKIE);
+    removeCookie(TOKEN_TYPE_COOKIE);
 
     scheduleSilentRefresh();
   };
@@ -395,6 +401,13 @@ export const useAuthApi = () => {
       return;
     }
 
+    sessionStorage.removeItem(ACCESS_TOKEN_KEY);
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+    sessionStorage.removeItem(TOKEN_TYPE_KEY);
+    sessionStorage.removeItem(ACCESS_EXPIRES_AT_KEY);
+    sessionStorage.removeItem(REFRESH_EXPIRES_AT_KEY);
+
+    // Also clear old persistent values from previous versions.
     localStorage.removeItem(ACCESS_TOKEN_KEY);
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(TOKEN_TYPE_KEY);
@@ -413,7 +426,7 @@ export const useAuthApi = () => {
       return "";
     }
 
-    return localStorage.getItem(ACCESS_TOKEN_KEY) || getCookie(ACCESS_TOKEN_COOKIE) || "";
+    return sessionStorage.getItem(ACCESS_TOKEN_KEY) || "";
   };
 
   const getTokenType = () => {
@@ -421,7 +434,7 @@ export const useAuthApi = () => {
       return "Bearer";
     }
 
-    return localStorage.getItem(TOKEN_TYPE_KEY) || getCookie(TOKEN_TYPE_COOKIE) || "Bearer";
+    return sessionStorage.getItem(TOKEN_TYPE_KEY) || "Bearer";
   };
 
   const getRefreshToken = () => {
@@ -429,7 +442,7 @@ export const useAuthApi = () => {
       return "";
     }
 
-    return localStorage.getItem(REFRESH_TOKEN_KEY) || getCookie(REFRESH_TOKEN_COOKIE) || "";
+    return sessionStorage.getItem(REFRESH_TOKEN_KEY) || "";
   };
 
   const getAccessExpiresAt = () => {
@@ -437,7 +450,7 @@ export const useAuthApi = () => {
       return 0;
     }
 
-    const raw = localStorage.getItem(ACCESS_EXPIRES_AT_KEY);
+    const raw = sessionStorage.getItem(ACCESS_EXPIRES_AT_KEY);
     const parsed = Number(raw || 0);
     return Number.isFinite(parsed) ? parsed : 0;
   };
@@ -447,7 +460,7 @@ export const useAuthApi = () => {
       return 0;
     }
 
-    const raw = localStorage.getItem(REFRESH_EXPIRES_AT_KEY);
+    const raw = sessionStorage.getItem(REFRESH_EXPIRES_AT_KEY);
     const parsed = Number(raw || 0);
     return Number.isFinite(parsed) ? parsed : 0;
   };
@@ -901,7 +914,9 @@ export const useAuthApi = () => {
   return {
     clearSession,
     getAccessToken,
+    getAccessExpiresAt,
     getRefreshToken,
+    getRefreshExpiresAt,
     getTokenType,
     getMe,
     updateMe,
