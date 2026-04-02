@@ -267,8 +267,14 @@
           <div class="xl:col-span-2 min-w-0 space-y-10">
             <!-- Monthly Performance Chart -->
             <div
-              class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"
+              class="relative bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"
             >
+              <div
+                v-if="chartLoading"
+                class="absolute inset-0 z-20 rounded-[2.5rem] bg-white/75 backdrop-blur-[1px] flex items-center justify-center"
+              >
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Loading chart...</p>
+              </div>
               <div class="flex justify-between items-center mb-7">
                 <h4
                   class="text-[11px] font-bold text-slate-400 uppercase tracking-widest"
@@ -277,46 +283,89 @@
                 </h4>
                 <div class="flex space-x-4">
                   <div class="flex items-center space-x-2">
-                    <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
+                    <div class="w-2 h-2 rounded-full bg-slate-900"></div>
                     <span
                       class="text-[9px] text-slate-400 uppercase tracking-widest"
-                      >Income</span
+                      >High Activity</span
+                    >
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <div class="w-2 h-2 rounded-full bg-slate-500"></div>
+                    <span
+                      class="text-[9px] text-slate-400 uppercase tracking-widest"
+                      >Medium</span
                     >
                   </div>
                   <div class="flex items-center space-x-2">
                     <div class="w-2 h-2 rounded-full bg-slate-200"></div>
                     <span
                       class="text-[9px] text-slate-400 uppercase tracking-widest"
-                      >Expense</span
+                      >Low</span
                     >
                   </div>
                 </div>
               </div>
-              <div class="h-44 flex items-end justify-between px-2 gap-3">
+              <div class="relative h-56 px-2">
                 <div
-                  v-for="(h, i) in [
-                    40, 70, 45, 90, 65, 80, 50, 60, 40, 85, 30, 95,
-                  ]"
-                  :key="i"
-                  class="flex-1 group relative"
+                  class="absolute inset-x-2 inset-y-0 grid"
+                  style="grid-template-rows: repeat(5, minmax(0, 1fr));"
                 >
                   <div
-                    class="w-full bg-slate-50 rounded-t-xl transition-all group-hover:bg-indigo-50"
-                    :style="{ height: h * 0.8 + '%' }"
+                    v-for="marker in 5"
+                    :key="marker"
+                    class="border-b border-slate-100"
                   ></div>
+                </div>
+
+                <div class="relative z-10 h-full flex items-end justify-between gap-3">
                   <div
-                    class="absolute bottom-0 w-full bg-indigo-500 rounded-t-xl opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-                    :style="{ height: h * 0.5 + '%' }"
-                  ></div>
+                    v-for="month in monthlyStackBars"
+                    :key="month.key"
+                    class="flex-1 flex justify-center"
+                  >
+                    <div
+                      class="w-full max-w-10 min-w-6 rounded-t-full overflow-hidden flex flex-col-reverse"
+                      :style="{ height: `${month.height}%` }"
+                    >
+                      <div
+                        class="w-full bg-slate-900 rounded-t-full"
+                        :style="{ height: `${month.bottomSegment}%` }"
+                      ></div>
+                      <div
+                        class="w-full bg-slate-500 rounded-t-full"
+                        :style="{ height: `${month.middleSegment}%` }"
+                      ></div>
+                      <div
+                        class="w-full bg-slate-200 rounded-t-full"
+                        :style="{ height: `${month.topSegment}%` }"
+                      ></div>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div
-                class="flex justify-between mt-6 px-2 text-[9px] text-slate-300 uppercase tracking-widest font-bold"
+                class="flex justify-between mt-5 px-2 text-[9px] text-slate-400 uppercase tracking-widest font-bold"
               >
-                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span
-                ><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span
-                ><span>Sep</span><span>Oct</span><span>Nov</span
-                ><span>Dec</span>
+                <span
+                  v-for="month in monthlyStackBars"
+                  :key="month.key"
+                >
+                  {{ month.label }}
+                </span>
+              </div>
+              <div class="mt-8 flex flex-wrap items-center gap-4 border-t border-slate-100 pt-6">
+                <div class="flex items-center gap-2 rounded-full bg-slate-50 p-1">
+                  <button
+                    v-for="range in chartRanges"
+                    :key="range"
+                    type="button"
+                    @click="setChartRange(range)"
+                    class="rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-wide transition"
+                    :class="selectedChartRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-700'"
+                  >
+                    {{ range }}
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -502,7 +551,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
@@ -537,7 +586,34 @@ type TransactionItem = {
   type: TransactionType;
   wallet: string;
   date: string;
+  transactionDateRaw: string | null;
 };
+
+type MonthlyPerformanceItem = {
+  key: string;
+  label: string;
+  income: number;
+  expense: number;
+};
+
+type MonthlySummaryAggregateItem = {
+  month: string;
+  income_total: number;
+  expense_total: number;
+  transaction_count: number;
+};
+
+type MonthlyStackBarItem = {
+  key: string;
+  label: string;
+  height: number;
+  bottomSegment: number;
+  middleSegment: number;
+  topSegment: number;
+};
+
+type ChartRange = "1 Day" | "1 Week" | "1 Month" | "1 Year" | "All Time";
+type ChartRangeQuery = "1d" | "1w" | "1m" | "1y" | "all";
 
 const mobileSidebarOpen = ref(false);
 
@@ -554,14 +630,23 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
-const { listMyWallets, listMyCategories, listMyBudgets, listMyTransactions } = useAuthApi();
+const {
+  listMyWallets,
+  listMyCategories,
+  listMyBudgets,
+  listMyTransactions,
+  listMyTransactionMonthlySummary,
+} = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const router = useRouter();
 const wallets = ref<WalletItem[]>([]);
 const categories = ref<CategoryItem[]>([]);
 const budgets = ref<BudgetItem[]>([]);
 const allTransactions = ref<TransactionItem[]>([]);
+const monthlySummaryItems = ref<MonthlySummaryAggregateItem[]>([]);
 const pageLoading = ref(false);
+const chartLoading = ref(false);
+const selectedChartRange = ref<ChartRange>("All Time");
 
 onMounted(() => {
   void loadInitialData();
@@ -598,6 +683,82 @@ const headerTotalNetWorth = computed(() => {
 });
 
 const recentTransactions = computed(() => allTransactions.value.slice(0, 3));
+const chartRanges: ChartRange[] = ["1 Day", "1 Week", "1 Month", "1 Year", "All Time"];
+
+const chartRangeQueryMap: Record<ChartRange, ChartRangeQuery> = {
+  "1 Day": "1d",
+  "1 Week": "1w",
+  "1 Month": "1m",
+  "1 Year": "1y",
+  "All Time": "all",
+};
+
+const chartSummaryQuery = computed(() => {
+  return {
+    startDate: undefined,
+    endDate: undefined,
+    range: chartRangeQueryMap[selectedChartRange.value],
+  };
+});
+
+const monthlyPerformance = computed<MonthlyPerformanceItem[]>(() => {
+  const now = new Date();
+  const baseMonths = Array.from({ length: 12 }, (_, offset) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - (11 - offset), 1);
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    return {
+      key: `${date.getFullYear()}-${month}`,
+      label: date.toLocaleString("en-US", { month: "short" }),
+      income: 0,
+      expense: 0,
+    };
+  });
+
+  const monthMap = new Map(baseMonths.map((item) => [item.key, item]));
+  for (const item of monthlySummaryItems.value) {
+    const monthItem = monthMap.get(item.month);
+    if (!monthItem) {
+      continue;
+    }
+
+    monthItem.income += Number(item.income_total || 0);
+    monthItem.expense += Number(item.expense_total || 0);
+  }
+
+  return baseMonths;
+});
+
+const chartMaxValue = computed(() => {
+  const max = Math.max(
+    ...monthlyPerformance.value.flatMap((item) => [item.income, item.expense]),
+    1,
+  );
+  return max;
+});
+
+const monthlyStackBars = computed<MonthlyStackBarItem[]>(() => {
+  const max = chartMaxValue.value;
+
+  return monthlyPerformance.value.map((item) => {
+    const total = item.income + item.expense;
+    const height = total > 0 ? Math.max((total / max) * 100, 14) : 0;
+
+    // Split the rounded bar into three stacked layers to mimic the reference visual.
+    const expenseShare = total > 0 ? item.expense / total : 0;
+    const bottomSegment = 32 + expenseShare * 28;
+    const middleSegment = 24;
+    const topSegment = 100 - bottomSegment - middleSegment;
+
+    return {
+      key: item.key,
+      label: item.label,
+      height,
+      bottomSegment,
+      middleSegment,
+      topSegment,
+    };
+  });
+});
 
 const activeBudgets = computed(() => {
   const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
@@ -652,20 +813,47 @@ const loadTransactions = async () => {
     type: item.type,
     wallet: item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet",
     date: formatDateDisplay(item.transaction_date),
+    transactionDateRaw: item.transaction_date || null,
   }));
+};
+
+const loadMonthlySummary = async () => {
+  chartLoading.value = true;
+  try {
+    const res = await listMyTransactionMonthlySummary(chartSummaryQuery.value);
+    monthlySummaryItems.value = (res.items || []).map((item) => ({
+      month: item.month,
+      income_total: Number(item.income_total || 0),
+      expense_total: Number(item.expense_total || 0),
+      transaction_count: Number(item.transaction_count || 0),
+    }));
+  } catch (error) {
+    console.error("monthly-summary-load-failed", normalizeErrorMessage(error));
+    monthlySummaryItems.value = [];
+  } finally {
+    chartLoading.value = false;
+  }
+};
+
+const setChartRange = (range: ChartRange) => {
+  selectedChartRange.value = range;
 };
 
 const loadInitialData = async () => {
   pageLoading.value = true;
   try {
     await Promise.all([loadWallets(), loadCategories(), loadBudgets()]);
-    await Promise.all([loadTransactions(), refreshTotalNetWorth()]);
+    await Promise.all([loadTransactions(), loadMonthlySummary(), refreshTotalNetWorth()]);
   } catch (error) {
     console.error("dashboard-load-failed", normalizeErrorMessage(error));
   } finally {
     pageLoading.value = false;
   }
 };
+
+watch([selectedChartRange], () => {
+  void loadMonthlySummary();
+});
 
 const openWalletDetail = (walletID: string) => {
   void router.push(`/wallet/${walletID}`);
@@ -741,4 +929,5 @@ main::-webkit-scrollbar {
     transform: translateY(0);
   }
 }
+
 </style>

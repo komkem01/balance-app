@@ -264,6 +264,21 @@ type TransactionListParams = {
   type?: TransactionType;
 };
 
+type TransactionMonthlySummaryItemResponse = {
+  month: string;
+  income_total: number;
+  expense_total: number;
+  transaction_count: number;
+};
+
+type TransactionMonthlySummaryParams = {
+  walletID?: string;
+  categoryID?: string;
+  startDate?: string;
+  endDate?: string;
+  range?: "1d" | "1w" | "1m" | "1y" | "all";
+};
+
 type CreateTransactionRequest = {
   wallet_id?: string;
   category_id?: string;
@@ -891,6 +906,43 @@ export const useAuthApi = () => {
     };
   };
 
+  const listMyTransactionMonthlySummary = async (params?: TransactionMonthlySummaryParams) => {
+    const query = new URLSearchParams();
+
+    if (params?.walletID) {
+      query.set("wallet_id", params.walletID);
+    }
+
+    if (params?.categoryID) {
+      query.set("category_id", params.categoryID);
+    }
+
+    if (params?.startDate) {
+      query.set("start_date", params.startDate);
+    }
+
+    if (params?.endDate) {
+      query.set("end_date", params.endDate);
+    }
+
+    if (params?.range) {
+      query.set("range", params.range);
+    }
+
+    const queryString = query.toString();
+    const path = queryString
+      ? `/balances/transactions/monthly-summary?${queryString}`
+      : "/balances/transactions/monthly-summary";
+
+    const res = await requestWithAuth<TransactionMonthlySummaryItemResponse[]>(path, {
+      method: "GET",
+    });
+
+    return {
+      items: res.data || [],
+    };
+  };
+
   const createMyTransaction = async (body: CreateTransactionRequest) => {
     return await requestWithAuth<TransactionItemResponse>("/balances/transactions", {
       method: "POST",
@@ -940,6 +992,7 @@ export const useAuthApi = () => {
     deleteMyBudget,
     recalculateAllBudgets,
     listMyTransactions,
+    listMyTransactionMonthlySummary,
     createMyTransaction,
     updateMyTransaction,
     deleteMyTransaction,
