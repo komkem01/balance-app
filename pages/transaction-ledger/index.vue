@@ -562,6 +562,12 @@
                   </p>
                   <div class="mt-2 flex items-center justify-end gap-3">
                     <button
+                      class="text-[9px] font-bold uppercase tracking-widest text-indigo-500 hover:text-indigo-700"
+                      @click="viewTransactionDetail(item)"
+                    >
+                      View Detail
+                    </button>
+                    <button
                       class="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700"
                       @click="openEditTransaction(item)"
                     >
@@ -808,6 +814,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from "vue";
+import { useRouter } from "vue-router";
 import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
@@ -847,6 +854,7 @@ type LedgerItem = {
 };
 
 const mobileSidebarOpen = ref(false);
+const router = useRouter();
 const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, confirmLogout, cancelLogout, userDisplayName } = useSidebarNavigation({
   mobileMaxWidth: 1024,
   onCloseSidebar: () => {
@@ -1120,6 +1128,10 @@ const requestDeleteTransaction = (item: LedgerItem) => {
   deleteTargetID.value = item.id;
   deleteConfirmDescription.value = `Delete transaction ${item.note || item.category}?`;
   deleteConfirmOpen.value = true;
+};
+
+const viewTransactionDetail = (item: LedgerItem) => {
+  void router.push(`/transaction-ledger/${item.id}`);
 };
 
 const onEditCalendarDateChange = (event: Event) => {

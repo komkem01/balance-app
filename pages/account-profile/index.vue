@@ -1217,6 +1217,53 @@
               <div
                 class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"
               >
+                <div class="mb-8 flex flex-col items-center gap-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-6 md:flex-row md:items-center md:justify-between">
+                  <div class="flex min-w-0 items-center gap-4">
+                    <div
+                      v-if="profileImageDataURL"
+                      class="h-16 w-16 overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                    >
+                      <img
+                        :src="profileImageDataURL"
+                        alt="Profile image"
+                        class="h-full w-full object-cover"
+                      />
+                    </div>
+                    <div
+                      v-else
+                      class="flex h-16 w-16 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-bold tracking-wide text-slate-600"
+                    >
+                      {{ profileInitials }}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Profile Image</p>
+                      <p class="mt-1 text-xs text-slate-400">JPG, PNG, WEBP (max 10MB)</p>
+                      <p v-if="profileImageFileName" class="mt-1 truncate text-xs font-medium text-slate-600">{{ profileImageFileName }}</p>
+                    </div>
+                  </div>
+                  <div class="flex shrink-0 items-center gap-2">
+                    <label
+                      class="inline-flex h-10 cursor-pointer items-center justify-center whitespace-nowrap rounded-xl border border-slate-200 bg-white px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                    >
+                      Choose Image
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        class="sr-only"
+                        @change="onProfileImageChange"
+                      />
+                    </label>
+                    <button
+                      v-if="profileImageDataURL"
+                      type="button"
+                      class="inline-flex h-10 items-center justify-center whitespace-nowrap rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-rose-600 transition hover:border-rose-300 hover:bg-rose-100"
+                      @click="confirmRemoveProfileImage"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+
                 <h4
                   class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-7"
                 >
@@ -1490,6 +1537,7 @@ type MeData = {
   last_name: string;
   display_name: string;
   phone: string;
+  profile_image_url: string;
   account: {
     id: string;
     username: string;
@@ -1513,6 +1561,8 @@ const pageLoading = ref(false);
 const passwordChanging = ref(false);
 const accountDeactivating = ref(false);
 const message = ref("");
+const profileImageDataURL = ref("");
+const profileImageFileName = ref("");
 const authApi = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const confirmModalOpen = ref(false);
@@ -1631,6 +1681,20 @@ const meSummary = computed(() => {
   };
 });
 
+const profileInitials = computed(() => {
+  const source = (userProfile.displayName || `${userProfile.firstName} ${userProfile.lastName}`).trim();
+  if (!source) {
+    return "NA";
+  }
+
+  const words = source.split(/\s+/).filter(Boolean);
+  if (words.length === 1) {
+    return words[0].slice(0, 2).toUpperCase();
+  }
+
+  return `${words[0][0] || ""}${words[1][0] || ""}`.toUpperCase();
+});
+
 // User Profile State
 const userProfile = reactive({
   firstName: "Johnathan",
@@ -1656,6 +1720,8 @@ const loadMeProfile = async () => {
     userProfile.lastName = me.last_name || "";
     userProfile.displayName = me.display_name || "";
     userProfile.phone = me.phone || "";
+    profileImageDataURL.value = me.profile_image_url || "";
+    profileImageFileName.value = me.profile_image_url ? "Uploaded profile image" : "";
   } catch {
     message.value = "member-me-failed";
     setTimeout(() => {
@@ -1663,6 +1729,111 @@ const loadMeProfile = async () => {
     }, 2000);
   } finally {
     pageLoading.value = false;
+  }
+};
+
+const removeProfileImage = async () => {
+  if (!meData.value?.id) {
+    message.value = "member-me-failed";
+    setTimeout(() => {
+      message.value = "";
+    }, 1800);
+    return;
+  }
+
+  try {
+    const res = await authApi.updateMe(meData.value.id, {
+      profile_image_url: "",
+    });
+    const updated = res.data as MeData;
+    meData.value = {
+      ...meData.value,
+      ...updated,
+      account: updated.account || meData.value.account,
+    };
+    profileImageDataURL.value = "";
+    profileImageFileName.value = "";
+    message.value = "Profile image removed";
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "member-profile-image-remove-failed";
+  }
+
+  setTimeout(() => {
+    message.value = "";
+  }, 1800);
+};
+
+const confirmRemoveProfileImage = () => {
+  openConfirmModal(
+    "Confirm Remove Image",
+    "Do you want to remove your current profile image?",
+    "Remove",
+    async () => {
+      await removeProfileImage();
+    },
+    { isDanger: true },
+  );
+};
+
+const uploadProfileImage = async (file: File) => {
+  try {
+    const res = await authApi.uploadMyProfileImage(file);
+    const me = res.data as MeData;
+    meData.value = {
+      ...(meData.value || me),
+      ...me,
+      account: me.account || meData.value?.account || null,
+    };
+    profileImageDataURL.value = me.profile_image_url || "";
+    profileImageFileName.value = file.name;
+    message.value = "Profile image attached";
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "member-profile-image-upload-failed";
+  }
+
+  setTimeout(() => {
+    message.value = "";
+  }, 1800);
+};
+
+const onProfileImageChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement | null;
+  const file = target?.files?.[0];
+  if (!file) {
+    return;
+  }
+
+  if (file.size > 10 * 1024 * 1024) {
+    message.value = "Profile image must be 10MB or less";
+    setTimeout(() => {
+      message.value = "";
+    }, 1800);
+    return;
+  }
+
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+    message.value = "Only JPG, PNG, and WEBP are supported";
+    setTimeout(() => {
+      message.value = "";
+    }, 1800);
+    return;
+  }
+
+  const hasCurrentImage = Boolean(profileImageDataURL.value);
+
+  openConfirmModal(
+    hasCurrentImage ? "Confirm Replace Image" : "Confirm Upload Image",
+    hasCurrentImage
+      ? "This will replace your current profile image. Do you want to continue?"
+      : "Do you want to upload this profile image?",
+    hasCurrentImage ? "Replace" : "Upload",
+    async () => {
+      await uploadProfileImage(file);
+    },
+  );
+
+  if (target) {
+    target.value = "";
   }
 };
 

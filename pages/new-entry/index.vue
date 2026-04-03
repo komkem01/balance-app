@@ -630,11 +630,11 @@
                   <div class="rounded-3xl border border-slate-100 bg-slate-50/80 p-6">
                     <AppFileInput
                       legend="Attach payment slip"
-                      helper-text="Image only (JPG, PNG, WEBP) - Max size 2MB"
+                      helper-text="Image only (JPG, PNG, WEBP) - Max size 10MB"
                       accept="image/png,image/jpeg,image/webp"
-                      invalid-size-message="Slip image must be 2MB or less."
+                      invalid-size-message="Slip image must be 10MB or less."
                       :disabled="!newRecord.wallet_id || slipUploadLoading"
-                      :max-size-m-b="2"
+                      :max-size-m-b="10"
                       :fieldset-class="'space-y-2'"
                       :container-class="'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3'"
                       :file-name-class="'text-slate-700'"
