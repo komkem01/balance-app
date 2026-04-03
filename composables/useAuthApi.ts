@@ -279,6 +279,16 @@ type TransactionMonthlySummaryParams = {
   range?: "1d" | "1w" | "1m" | "1y" | "all";
 };
 
+type StorageUploadSlipResponse = {
+  image_url: string;
+  display_image_url: string;
+};
+
+type StorageGetSlipResponse = {
+  image_url: string;
+  display_image_url: string;
+};
+
 type CreateTransactionRequest = {
   wallet_id?: string;
   category_id?: string;
@@ -287,6 +297,7 @@ type CreateTransactionRequest = {
   transaction_date?: string;
   note?: string;
   image_url?: string;
+  image_file?: File | null;
 };
 
 type UpdateTransactionRequest = {
@@ -323,11 +334,13 @@ export const useAuthApi = () => {
     "http://localhost:8080/api/v1";
 
   const request = async <T>(path: string, init?: RequestInit): Promise<ApiEnvelope<T>> => {
+    const headers = new Headers(init?.headers || {});
+    if (!(init?.body instanceof FormData) && !headers.has("Content-Type")) {
+      headers.set("Content-Type", "application/json");
+    }
+
     const response = await fetch(`${apiBase}${path}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers || {}),
-      },
+      headers,
       ...init,
     });
 
@@ -962,9 +975,59 @@ export const useAuthApi = () => {
   };
 
   const createMyTransaction = async (body: CreateTransactionRequest) => {
+    if (body.image_file) {
+      const formData = new FormData();
+
+      if (body.wallet_id) {
+        formData.append("wallet_id", body.wallet_id);
+      }
+      if (body.category_id) {
+        formData.append("category_id", body.category_id);
+      }
+
+      formData.append("amount", String(body.amount));
+      formData.append("type", body.type);
+
+      if (body.transaction_date) {
+        formData.append("transaction_date", body.transaction_date);
+      }
+      if (body.note) {
+        formData.append("note", body.note);
+      }
+      if (body.image_url) {
+        formData.append("image_url", body.image_url);
+      }
+
+      formData.append("image", body.image_file);
+
+      return await requestWithAuth<TransactionItemResponse>("/balances/transactions", {
+        method: "POST",
+        body: formData,
+      });
+    }
+
+    const { image_file, ...payload } = body;
+
     return await requestWithAuth<TransactionItemResponse>("/balances/transactions", {
       method: "POST",
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
+    });
+  };
+
+  const uploadMyTransactionSlip = async (walletID: string, imageFile: File) => {
+    const formData = new FormData();
+    formData.append("wallet_id", walletID);
+    formData.append("image", imageFile);
+
+    return await requestWithAuth<StorageUploadSlipResponse>("/balances/storage/slips", {
+      method: "POST",
+      body: formData,
+    });
+  };
+
+  const getMyTransactionSlip = async (transactionID: string) => {
+    return await requestWithAuth<StorageGetSlipResponse>(`/balances/storage/slips/${transactionID}`, {
+      method: "GET",
     });
   };
 
@@ -1012,6 +1075,8 @@ export const useAuthApi = () => {
     listMyTransactions,
     listMyTransactionMonthlySummary,
     createMyTransaction,
+    uploadMyTransactionSlip,
+    getMyTransactionSlip,
     updateMyTransaction,
     deleteMyTransaction,
     loginMember,
