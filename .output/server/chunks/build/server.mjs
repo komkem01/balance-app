@@ -587,59 +587,64 @@ function getRouteRules(arg) {
 }
 const _routes = [
   {
+    name: "transaction-ledger-id",
+    path: "/transaction-ledger/:id()",
+    component: () => import('./index-DEiuKA9K.mjs')
+  },
+  {
     name: "wallet-id",
     path: "/wallet/:id()",
-    component: () => import('./index-CoFbQZCw.mjs')
+    component: () => import('./index-BfpFkO_L.mjs')
   },
   {
     name: "account-profile",
     path: "/account-profile",
-    component: () => import('./index-D4kJQSgS.mjs')
+    component: () => import('./index-DlEK1y0p.mjs')
   },
   {
     name: "budget",
     path: "/budget",
-    component: () => import('./index-CcvjEDNv.mjs')
+    component: () => import('./index-CKrafvb8.mjs')
   },
   {
     name: "categories",
     path: "/categories",
-    component: () => import('./index-B3Kd7bAs.mjs')
+    component: () => import('./index-Dy7kbUU-.mjs')
   },
   {
     name: "dashboard",
     path: "/dashboard",
-    component: () => import('./index-BQhnsS6t.mjs')
+    component: () => import('./index-CogYgXyL.mjs')
   },
   {
     name: "new-entry",
     path: "/new-entry",
-    component: () => import('./index-BzpdAmzu.mjs')
+    component: () => import('./index-DoOTbvIc.mjs')
   },
   {
     name: "register",
     path: "/register",
-    component: () => import('./index-D2M-H9EA.mjs')
+    component: () => import('./index-C3JWNoVJ.mjs')
   },
   {
     name: "setting",
     path: "/setting",
-    component: () => import('./index-BXWRoZtz.mjs')
+    component: () => import('./index-C3m2bAiO.mjs')
   },
   {
     name: "transaction-ledger",
     path: "/transaction-ledger",
-    component: () => import('./index-D04v0sxr.mjs')
+    component: () => import('./index-DU-CI8tU.mjs')
   },
   {
     name: "wallet",
     path: "/wallet",
-    component: () => import('./index-Bmoa0goY.mjs')
+    component: () => import('./index-uiJybE1-.mjs')
   },
   {
     name: "index",
     path: "/",
-    component: () => import('./index-DotI5zgW.mjs')
+    component: () => import('./index-CBY04rEU.mjs')
   }
 ];
 const _wrapInTransition = (props, children) => {

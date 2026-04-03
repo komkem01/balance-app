@@ -84,10 +84,15 @@ type MeResponse = {
   last_name: string;
   display_name: string;
   phone: string;
+  profile_image_url: string;
   account: MeAccount | null;
   created_at: string;
   updated_at: string;
   last_login: string | null;
+};
+
+type MeProfileImageResponse = {
+  image_url: string;
 };
 
 type UpdateMemberRequest = {
@@ -95,6 +100,7 @@ type UpdateMemberRequest = {
   last_name?: string;
   display_name?: string;
   phone?: string;
+  profile_image_url?: string;
 };
 
 type ChangeMyPasswordRequest = {
@@ -714,10 +720,26 @@ export const useAuthApi = () => {
     });
   };
 
+  const getMyProfileImage = async () => {
+    return await requestWithAuth<MeProfileImageResponse>("/me/profile-image", {
+      method: "GET",
+    });
+  };
+
   const updateMe = async (memberID: string, body: UpdateMemberRequest) => {
     return await requestWithAuth<MeResponse>(`/members/${memberID}`, {
       method: "PATCH",
       body: JSON.stringify(body),
+    });
+  };
+
+  const uploadMyProfileImage = async (imageFile: File) => {
+    const formData = new FormData();
+    formData.append("image", imageFile);
+
+    return await requestWithAuth<MeResponse>("/me/profile-image", {
+      method: "POST",
+      body: formData,
     });
   };
 
@@ -1031,6 +1053,12 @@ export const useAuthApi = () => {
     });
   };
 
+  const getMyTransaction = async (transactionID: string) => {
+    return await requestWithAuth<TransactionItemResponse>(`/balances/transactions/${transactionID}`, {
+      method: "GET",
+    });
+  };
+
   const updateMyTransaction = async (transactionID: string, body: UpdateTransactionRequest) => {
     return await requestWithAuth<TransactionItemResponse>(`/balances/transactions/${transactionID}`, {
       method: "PATCH",
@@ -1052,7 +1080,9 @@ export const useAuthApi = () => {
     getRefreshExpiresAt,
     getTokenType,
     getMe,
+    getMyProfileImage,
     updateMe,
+    uploadMyProfileImage,
     changeMyPassword,
     deleteMe,
     getMySettings,
@@ -1077,6 +1107,7 @@ export const useAuthApi = () => {
     createMyTransaction,
     uploadMyTransactionSlip,
     getMyTransactionSlip,
+    getMyTransaction,
     updateMyTransaction,
     deleteMyTransaction,
     loginMember,

@@ -954,7 +954,7 @@ const _inlineRuntimeConfig = {
     }
   },
   "public": {
-    "apiBase": "https://balance-service-production.up.railway.app/api/v1"
+    "apiBase": "http://localhost:8080/api/v1"
   },
   "icon": {
     "serverKnownCssClasses": []
@@ -2464,7 +2464,22 @@ _n9VT3N4nWYZBy8wTJtShHQMamZsxy_k0jwR2_BiNch4,
 _wH6JrtIxmaSoA8lCPWFnE9z4lQeXW6H5z3l5aymEQw
 ];
 
-const assets = {};
+const assets = {
+  "/index.mjs": {
+    "type": "text/javascript; charset=utf-8",
+    "etag": "\"1d40f-HezMu7Vto7iVygS8FHHTcs4prPE\"",
+    "mtime": "2026-04-03T15:21:00.359Z",
+    "size": 119823,
+    "path": "index.mjs"
+  },
+  "/index.mjs.map": {
+    "type": "application/json",
+    "etag": "\"6f3b9-XV/gMkvfEhqQ39x9Mn71uMT0b9g\"",
+    "mtime": "2026-04-03T15:21:00.359Z",
+    "size": 455609,
+    "path": "index.mjs.map"
+  }
+};
 
 function readAsset (id) {
   const serverDir = dirname$1(fileURLToPath(globalThis._importMeta_.url));
