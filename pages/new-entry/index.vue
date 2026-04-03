@@ -344,9 +344,16 @@
                 >
                   <div class="flex items-center space-x-4">
                     <div
-                      class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400"
+                      class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center text-[10px] font-bold text-slate-400"
                     >
-                      {{ item.category.substring(0, 2).toUpperCase() }}
+                      <img
+                        v-if="getTransactionSlipSrc(item)"
+                        :src="getTransactionSlipSrc(item)"
+                        alt="Transaction slip"
+                        class="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <span v-else>{{ item.category.substring(0, 2).toUpperCase() }}</span>
                     </div>
                     <div>
                       <p class="text-sm font-medium text-slate-900">
@@ -626,12 +633,21 @@
                       helper-text="Image only (JPG, PNG, WEBP) - Max size 2MB"
                       accept="image/png,image/jpeg,image/webp"
                       invalid-size-message="Slip image must be 2MB or less."
+                      :disabled="!newRecord.wallet_id || slipUploadLoading"
                       :max-size-m-b="2"
                       :fieldset-class="'space-y-2'"
-                      :input-class="'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-[10px] file:font-bold file:uppercase file:tracking-widest file:text-white hover:file:bg-slate-800'"
+                      :container-class="'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3'"
+                      :file-name-class="'text-slate-700'"
                       @change="onSlipFileChange"
                       @invalid="onSlipInvalid"
                     />
+
+                    <p
+                      v-if="slipUploadLoading"
+                      class="mt-2 text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                    >
+                      Uploading slip...
+                    </p>
 
                     <div v-if="slipPreviewUrl" class="mt-4">
                       <div
@@ -662,10 +678,10 @@
               <div class="pt-6">
                 <button
                   type="submit"
-                  :disabled="loading"
+                  :disabled="loading || slipUploadLoading"
                   class="w-full py-6 bg-slate-900 text-white rounded-[2rem] text-xs font-bold uppercase tracking-[0.3em] shadow-2xl shadow-slate-200 hover:bg-slate-800 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center"
                 >
-                  <span v-if="!loading">Confirm Transaction</span>
+                  <span v-if="!loading && !slipUploadLoading">Confirm Transaction</span>
                   <div
                     v-else
                     class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"
@@ -843,9 +859,16 @@
                     {{ item.date.split(",")[0] }}
                   </div>
                   <div
-                    class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-500"
+                    class="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center text-[10px] font-bold text-slate-500"
                   >
-                    {{ item.category.substring(0, 1).toUpperCase() }}
+                    <img
+                      v-if="getTransactionSlipSrc(item)"
+                      :src="getTransactionSlipSrc(item)"
+                      alt="Transaction slip"
+                      class="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <span v-else>{{ item.category.substring(0, 1).toUpperCase() }}</span>
                   </div>
                   <div>
                     <p class="text-sm font-medium text-slate-900">
@@ -1410,6 +1433,7 @@ type LedgerItem = {
   type: TransactionType;
   wallet: string;
   date: string;
+  image_url: string;
 };
 
 const mobileSidebarOpen = ref(false);
@@ -1419,7 +1443,7 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
-const { listMyWallets, createMyWallet, listMyCategories, createMyCategory, deleteMyCategory, listMyBudgets, createMyBudget, deleteMyBudget, listMyTransactions, createMyTransaction } = useAuthApi();
+const { listMyWallets, createMyWallet, listMyCategories, createMyCategory, deleteMyCategory, listMyBudgets, createMyBudget, deleteMyBudget, listMyTransactions, createMyTransaction, uploadMyTransactionSlip, getMyTransactionSlip } = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const loading = ref(false);
 const message = ref("");
@@ -1793,7 +1817,15 @@ const loadTransactions = async () => {
     type: item.type,
     wallet: item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet",
     date: formatTransactionDate(item.transaction_date),
+    image_url: item.image_url || "",
   }));
+};
+
+const slipDisplayURLMap = ref<Record<string, string>>({});
+const resolvedSlipTransactionMap = ref<Record<string, true>>({});
+
+const getTransactionSlipSrc = (item: LedgerItem) => {
+  return slipDisplayURLMap.value[item.id] || item.image_url || "";
 };
 
 // New Entry State & Logic
@@ -1808,16 +1840,23 @@ const newRecord = reactive({
 
 const attachedSlipFile = ref<File | null>(null);
 const slipPreviewUrl = ref("");
+const uploadedSlipURL = ref("");
+const slipUploadLoading = ref(false);
 
-const clearSlipFile = () => {
-  if (slipPreviewUrl.value) {
+const revokeSlipPreviewURL = () => {
+  if (slipPreviewUrl.value.startsWith("blob:")) {
     URL.revokeObjectURL(slipPreviewUrl.value);
   }
+};
+
+const clearSlipFile = () => {
+  revokeSlipPreviewURL();
   slipPreviewUrl.value = "";
+  uploadedSlipURL.value = "";
   attachedSlipFile.value = null;
 };
 
-const onSlipFileChange = (files: FileList | null) => {
+const onSlipFileChange = async (files: FileList | null) => {
   const file = files?.[0] ?? null;
 
   if (!file) {
@@ -1825,12 +1864,35 @@ const onSlipFileChange = (files: FileList | null) => {
     return;
   }
 
-  if (slipPreviewUrl.value) {
-    URL.revokeObjectURL(slipPreviewUrl.value);
+  if (!newRecord.wallet_id) {
+    clearSlipFile();
+    message.value = "Please select a wallet before uploading a slip.";
+    return;
   }
+
+  revokeSlipPreviewURL();
 
   attachedSlipFile.value = file;
   slipPreviewUrl.value = URL.createObjectURL(file);
+
+  slipUploadLoading.value = true;
+  uploadedSlipURL.value = "";
+
+  try {
+    const res = await uploadMyTransactionSlip(newRecord.wallet_id, file);
+    uploadedSlipURL.value = res.data.image_url || "";
+
+    const displayURL = res.data.display_image_url || res.data.image_url || "";
+    if (displayURL) {
+      revokeSlipPreviewURL();
+      slipPreviewUrl.value = displayURL;
+    }
+  } catch (error) {
+    clearSlipFile();
+    message.value = normalizeErrorMessage(error);
+  } finally {
+    slipUploadLoading.value = false;
+  }
 };
 
 const onSlipInvalid = (invalidMessage: string) => {
@@ -1841,6 +1903,11 @@ const onSlipInvalid = (invalidMessage: string) => {
 const submitTransaction = async () => {
   if (!newRecord.amount || !newRecord.wallet_id || !newRecord.category_id)
     return;
+
+  if (slipUploadLoading.value) {
+    message.value = "Slip upload is still in progress. Please wait.";
+    return;
+  }
 
   if (newRecord.amount < 0 || !Number.isFinite(newRecord.amount)) {
     message.value = "transaction-amount-must-be-non-negative";
@@ -1870,6 +1937,7 @@ const submitTransaction = async () => {
       type: newRecord.type,
       transaction_date: newRecord.date,
       note: newRecord.note.trim(),
+      image_url: uploadedSlipURL.value || undefined,
     });
 
     await Promise.all([
@@ -2017,6 +2085,50 @@ const endIndex = computed(() => startIndex.value + itemsPerPage);
 const paginatedTransactions = computed(() => {
   return allTransactions.value.slice(startIndex.value, endIndex.value);
 });
+
+const visibleSlipTransactionIDs = computed(() => {
+  const ids = new Set<string>();
+  for (const item of recentTransactionsSnapshot.value) {
+    if (item.image_url) {
+      ids.add(item.id);
+    }
+  }
+  for (const item of paginatedTransactions.value) {
+    if (item.image_url) {
+      ids.add(item.id);
+    }
+  }
+  return Array.from(ids);
+});
+
+watch(
+  visibleSlipTransactionIDs,
+  async (transactionIDs) => {
+    const pending = transactionIDs.filter((transactionID) => !resolvedSlipTransactionMap.value[transactionID]);
+    if (!pending.length) {
+      return;
+    }
+
+    for (const transactionID of pending) {
+      resolvedSlipTransactionMap.value[transactionID] = true;
+    }
+
+    await Promise.all(
+      pending.map(async (transactionID) => {
+        try {
+          const res = await getMyTransactionSlip(transactionID);
+          const displayURL = res.data.display_image_url || res.data.image_url || "";
+          if (displayURL) {
+            slipDisplayURLMap.value[transactionID] = displayURL;
+          }
+        } catch {
+          // Keep fallback image URL from transaction list if display URL lookup fails.
+        }
+      }),
+    );
+  },
+  { immediate: true },
+);
 
 const prevPage = () => {
   if (currentPage.value > 1) currentPage.value--;
