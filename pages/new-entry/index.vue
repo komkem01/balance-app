@@ -628,7 +628,8 @@
                       invalid-size-message="Slip image must be 2MB or less."
                       :max-size-m-b="2"
                       :fieldset-class="'space-y-2'"
-                      :input-class="'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-[10px] file:font-bold file:uppercase file:tracking-widest file:text-white hover:file:bg-slate-800'"
+                      :container-class="'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3'"
+                      :file-name-class="'text-slate-700'"
                       @change="onSlipFileChange"
                       @invalid="onSlipInvalid"
                     />

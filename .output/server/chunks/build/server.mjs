@@ -614,7 +614,7 @@ const _routes = [
   {
     name: "new-entry",
     path: "/new-entry",
-    component: () => import('./index-yQUOMAXA.mjs')
+    component: () => import('./index-G79cUrOX.mjs')
   },
   {
     name: "register",

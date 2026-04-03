@@ -16,6 +16,7 @@ type LazyComponent<T> = DefineComponent<HydrationStrategies, {}, {}, {}, {}, {},
 interface _GlobalComponents {
   AppConfirmModal: typeof import("../../components/AppConfirmModal.vue")['default']
   AppDropdown: typeof import("../../components/AppDropdown.vue")['default']
+  AppFileInput: typeof import("../../components/AppFileInput.vue")['default']
   AppLoading: typeof import("../../components/AppLoading.vue")['default']
   UColorModeAvatar: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/color-mode/ColorModeAvatar.vue")['default']
   UColorModeButton: typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/color-mode/ColorModeButton.vue")['default']
@@ -171,6 +172,7 @@ interface _GlobalComponents {
   NuxtIsland: typeof import("../../node_modules/nuxt/dist/app/components/nuxt-island")['default']
   LazyAppConfirmModal: LazyComponent<typeof import("../../components/AppConfirmModal.vue")['default']>
   LazyAppDropdown: LazyComponent<typeof import("../../components/AppDropdown.vue")['default']>
+  LazyAppFileInput: LazyComponent<typeof import("../../components/AppFileInput.vue")['default']>
   LazyAppLoading: LazyComponent<typeof import("../../components/AppLoading.vue")['default']>
   LazyUColorModeAvatar: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/color-mode/ColorModeAvatar.vue")['default']>
   LazyUColorModeButton: LazyComponent<typeof import("../../node_modules/@nuxt/ui/dist/runtime/components/color-mode/ColorModeButton.vue")['default']>
