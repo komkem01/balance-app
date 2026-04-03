@@ -7,6 +7,10 @@ export default defineNuxtConfig({
     head: {
       title: "Balance Archive",
       meta: [
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1, viewport-fit=cover",
+        },
         { name: "application-name", content: "Balance Archive" },
       ],
       link: [

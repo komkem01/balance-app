@@ -5,6 +5,11 @@
 	--app-btn-primary-hover: #0d1d45;
 }
 
+html,
+body {
+	touch-action: manipulation;
+}
+
 button.bg-slate-900,
 button.bg-indigo-500,
 a.bg-slate-900,
