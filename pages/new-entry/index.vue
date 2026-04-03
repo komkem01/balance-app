@@ -614,6 +614,48 @@
                     class="w-full px-8 py-5 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
                   />
                 </div>
+
+                <div class="space-y-4 md:col-span-2">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >Slip Attachment (Optional)</label
+                  >
+                  <div class="rounded-3xl border border-slate-100 bg-slate-50/80 p-6">
+                    <AppFileInput
+                      legend="Attach payment slip"
+                      helper-text="Image only (JPG, PNG, WEBP) - Max size 2MB"
+                      accept="image/png,image/jpeg,image/webp"
+                      invalid-size-message="Slip image must be 2MB or less."
+                      :max-size-m-b="2"
+                      :fieldset-class="'space-y-2'"
+                      :input-class="'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 file:mr-4 file:rounded-xl file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-[10px] file:font-bold file:uppercase file:tracking-widest file:text-white hover:file:bg-slate-800'"
+                      @change="onSlipFileChange"
+                      @invalid="onSlipInvalid"
+                    />
+
+                    <div v-if="slipPreviewUrl" class="mt-4">
+                      <div
+                        class="relative overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                      >
+                        <img
+                          :src="slipPreviewUrl"
+                          alt="Slip preview"
+                          class="h-52 w-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          class="absolute right-3 top-3 inline-flex items-center rounded-xl bg-slate-900/90 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-slate-900"
+                          @click="clearSlipFile"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                      <p class="mt-2 text-[10px] uppercase tracking-widest text-slate-400">
+                        {{ attachedSlipFile?.name }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <!-- Submit Button -->
@@ -1764,6 +1806,38 @@ const newRecord = reactive({
   note: "",
 });
 
+const attachedSlipFile = ref<File | null>(null);
+const slipPreviewUrl = ref("");
+
+const clearSlipFile = () => {
+  if (slipPreviewUrl.value) {
+    URL.revokeObjectURL(slipPreviewUrl.value);
+  }
+  slipPreviewUrl.value = "";
+  attachedSlipFile.value = null;
+};
+
+const onSlipFileChange = (files: FileList | null) => {
+  const file = files?.[0] ?? null;
+
+  if (!file) {
+    clearSlipFile();
+    return;
+  }
+
+  if (slipPreviewUrl.value) {
+    URL.revokeObjectURL(slipPreviewUrl.value);
+  }
+
+  attachedSlipFile.value = file;
+  slipPreviewUrl.value = URL.createObjectURL(file);
+};
+
+const onSlipInvalid = (invalidMessage: string) => {
+  clearSlipFile();
+  message.value = invalidMessage;
+};
+
 const submitTransaction = async () => {
   if (!newRecord.amount || !newRecord.wallet_id || !newRecord.category_id)
     return;
@@ -1808,6 +1882,7 @@ const submitTransaction = async () => {
     message.value = "Entry Archived Successfully";
     newRecord.amount = null;
     newRecord.note = "";
+    clearSlipFile();
 
     setTimeout(() => {
       message.value = "";
@@ -1904,6 +1979,7 @@ onUnmounted(() => {
   if (typeof window !== "undefined") {
     document.removeEventListener("click", onDocumentClick);
   }
+  clearSlipFile();
   if (messageTimer) {
     clearTimeout(messageTimer);
     messageTimer = null;
