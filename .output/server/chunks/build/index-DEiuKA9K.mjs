@@ -77,23 +77,26 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
       return dateTimeFormatter.format(parsed);
     };
     const walletName = computed(() => {
-      const walletID = transaction.value?.wallet_id;
+      var _a;
+      const walletID = (_a = transaction.value) == null ? void 0 : _a.wallet_id;
       if (!walletID) {
         return "Unknown Wallet";
       }
       const item = wallets.value.find((wallet) => wallet.id === walletID);
-      return item?.name || "Unknown Wallet";
+      return (item == null ? void 0 : item.name) || "Unknown Wallet";
     });
     const categoryName = computed(() => {
-      const categoryID = transaction.value?.category_id;
+      var _a;
+      const categoryID = (_a = transaction.value) == null ? void 0 : _a.category_id;
       if (!categoryID) {
         return "Uncategorized";
       }
       const item = categories.value.find((category) => category.id === categoryID);
-      return item?.name || "Uncategorized";
+      return (item == null ? void 0 : item.name) || "Uncategorized";
     });
     const displayedSlipURL = computed(() => {
-      return slipDisplayURL.value || transaction.value?.image_url || "";
+      var _a;
+      return slipDisplayURL.value || ((_a = transaction.value) == null ? void 0 : _a.image_url) || "";
     });
     let toastTimer = null;
     const showToast = (message, duration = 1800) => {
@@ -136,12 +139,13 @@ const _sfc_main = /* @__PURE__ */ defineComponent({
     watch(
       () => editForm.type,
       () => {
+        var _a;
         if (!editForm.category_id) {
           return;
         }
         const exists = editCategoryOptions.value.some((category) => category.id === editForm.category_id);
         if (!exists) {
-          editForm.category_id = editCategoryOptions.value[0]?.id || "";
+          editForm.category_id = ((_a = editCategoryOptions.value[0]) == null ? void 0 : _a.id) || "";
         }
       }
     );
