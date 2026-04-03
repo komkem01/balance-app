@@ -25,6 +25,10 @@ export default defineNuxtConfig({
         process.env.NUXT_PUBLIC_API_BASE ||
         process.env.NUXT_PUBLIC_API_URL ||
         "http://localhost:8080/api/v1",
+      appVersion:
+        process.env.NUXT_PUBLIC_APP_VERSION ||
+        process.env.APP_VERSION ||
+        "0.0.0",
     },
   },
 })

@@ -1669,6 +1669,8 @@ const settingsLoading = ref(false);
 const settingsSaving = ref(false);
 const notificationsSaving = ref(false);
 const message = ref("");
+const runtimeConfig = useRuntimeConfig();
+const runtimeAppVersion = String(runtimeConfig.public.appVersion || "").trim() || "0.0.0";
 const authApi = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const confirmModalOpen = ref(false);
@@ -1731,7 +1733,7 @@ const systemSettings = reactive({
 });
 
 const systemManifest = reactive({
-  version: "-",
+  version: runtimeAppVersion,
   encryptedStatus: "-",
   year: new Date().getFullYear(),
 });
@@ -1842,10 +1844,10 @@ const loadSystemManifest = async () => {
   try {
     const res = await authApi.getSystemManifest();
     const m = res.data;
-    systemManifest.version = m.version || "-";
+    systemManifest.version = m.version || runtimeAppVersion;
     systemManifest.encryptedStatus = m.encrypted_status || "-";
   } catch {
-    systemManifest.version = "-";
+    systemManifest.version = runtimeAppVersion;
     systemManifest.encryptedStatus = "-";
   }
 };
