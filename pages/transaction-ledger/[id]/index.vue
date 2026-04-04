@@ -29,6 +29,38 @@ type CategoryItem = {
 	type: TransactionType;
 };
 
+type TransferDirection = "in" | "out";
+
+type TransferNoteMeta = {
+	ref: string;
+	direction: TransferDirection;
+	counterpartyWalletID: string;
+	userNote: string;
+};
+
+const transferNotePrefix = "__transfer__|";
+
+const parseTransferNote = (note: string): TransferNoteMeta | null => {
+	if (!note.startsWith(transferNotePrefix)) {
+		return null;
+	}
+
+	const [prefix, ref, direction, counterpartyWalletID, ...rest] = note.split("|");
+	if (prefix !== "__transfer__") {
+		return null;
+	}
+	if (!ref || (direction !== "in" && direction !== "out") || !counterpartyWalletID) {
+		return null;
+	}
+
+	return {
+		ref,
+		direction,
+		counterpartyWalletID,
+		userNote: rest.join("|").trim(),
+	};
+};
+
 const route = useRoute();
 const router = useRouter();
 const api = useAuthApi();
@@ -96,12 +128,87 @@ const walletName = computed(() => {
 });
 
 const categoryName = computed(() => {
+	if (isTransferTransaction.value) {
+		return "Transfer";
+	}
+
 	const categoryID = transaction.value?.category_id;
 	if (!categoryID) {
 		return "Uncategorized";
 	}
 	const item = categories.value.find((category) => category.id === categoryID);
 	return item?.name || "Uncategorized";
+});
+
+const transferMeta = computed(() => {
+	if (!transaction.value) {
+		return null;
+	}
+
+	return parseTransferNote(transaction.value.note || "");
+});
+
+const isTransferTransaction = computed(() => {
+	if (!transaction.value) {
+		return false;
+	}
+
+	return transferMeta.value !== null || transaction.value.note === "Wallet transfer";
+});
+
+const entryTypeBadgeLabel = computed(() => {
+	if (isTransferTransaction.value) {
+		if (transferMeta.value?.direction === "out") {
+			return "Transfer Out";
+		}
+		if (transferMeta.value?.direction === "in") {
+			return "Transfer In";
+		}
+		return "Transfer";
+	}
+
+	return transaction.value?.type || "-";
+});
+
+const counterpartyWalletName = computed(() => {
+	const walletID = transferMeta.value?.counterpartyWalletID;
+	if (!walletID) {
+		return "Unknown Wallet";
+	}
+
+	const item = wallets.value.find((wallet) => wallet.id === walletID);
+	return item?.name || "Unknown Wallet";
+});
+
+const transferRouteLabel = computed(() => {
+	if (!isTransferTransaction.value) {
+		return "";
+	}
+
+	if (transferMeta.value?.direction === "out") {
+		return `From ${walletName.value} to ${counterpartyWalletName.value}`;
+	}
+	if (transferMeta.value?.direction === "in") {
+		return `From ${counterpartyWalletName.value} to ${walletName.value}`;
+	}
+
+	return "Wallet transfer";
+});
+
+const displayNote = computed(() => {
+	if (!transaction.value) {
+		return "-";
+	}
+
+	if (!isTransferTransaction.value) {
+		return transaction.value.note || "-";
+	}
+
+	if (transferMeta.value?.userNote) {
+		return transferMeta.value.userNote;
+	}
+
+	return "Wallet transfer";
 });
 
 const displayedSlipURL = computed(() => {
@@ -444,17 +551,21 @@ watch(
 						<span
 							:class="[
 								'rounded-full px-4 py-1 text-[10px] font-bold uppercase tracking-widest',
-								transaction.type === 'expense' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
+								isTransferTransaction
+									? 'bg-blue-100 text-blue-700'
+									: transaction.type === 'expense'
+										? 'bg-rose-100 text-rose-700'
+										: 'bg-emerald-100 text-emerald-700'
 							]"
 						>
-							{{ transaction.type }}
+							{{ entryTypeBadgeLabel }}
 						</span>
 					</div>
 
 					<div class="mt-6 grid gap-5 sm:grid-cols-2">
 						<div>
 							<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Amount</p>
-							<p class="mt-2 text-3xl font-semibold tracking-tight" :class="transaction.type === 'expense' ? 'text-rose-600' : 'text-emerald-600'">
+							<p class="mt-2 text-3xl font-semibold tracking-tight" :class="isTransferTransaction ? 'text-blue-600' : (transaction.type === 'expense' ? 'text-rose-600' : 'text-emerald-600')">
 								{{ transaction.type === 'expense' ? '-' : '+' }} {{ moneyFormatter.format(Number(transaction.amount || 0)) }}
 							</p>
 						</div>
@@ -465,6 +576,10 @@ watch(
 						<div>
 							<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Category</p>
 							<p class="mt-2 text-base font-medium text-slate-900">{{ categoryName }}</p>
+						</div>
+						<div v-if="isTransferTransaction" class="sm:col-span-2">
+							<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Transfer Route</p>
+							<p class="mt-2 text-base font-medium text-blue-700">{{ transferRouteLabel }}</p>
 						</div>
 						<div>
 							<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Transaction Date</p>
@@ -483,7 +598,7 @@ watch(
 					<div class="mt-7 border-t border-slate-100 pt-6">
 						<p class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Note</p>
 						<p class="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
-							{{ transaction.note || '-' }}
+							{{ displayNote }}
 						</p>
 					</div>
 				</article>

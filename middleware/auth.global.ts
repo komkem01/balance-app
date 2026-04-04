@@ -1,6 +1,6 @@
 import { useAuthApi } from "../composables/useAuthApi";
 
-const PUBLIC_PATHS = new Set(["/", "/register"]);
+const PUBLIC_PATHS = new Set(["/", "/register", "/auth/callback/google"]);
 
 export default defineNuxtRouteMiddleware(async (to) => {
   if (PUBLIC_PATHS.has(to.path)) {

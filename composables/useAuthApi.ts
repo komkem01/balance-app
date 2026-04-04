@@ -131,6 +131,20 @@ type MeNotificationsUpdateRequest = {
   notify_weekly?: boolean;
 };
 
+type MemberNotificationType = "budget" | "security" | "weekly";
+type MemberNotificationLevel = "info" | "warning" | "critical";
+
+type MeNotificationItemResponse = {
+  id: string;
+  type: MemberNotificationType;
+  level: MemberNotificationLevel;
+  title: string;
+  description: string;
+  is_read: boolean;
+  read_at: string | null;
+  created_at: string;
+};
+
 type SystemManifestResponse = {
   version: string;
   encrypted_status: string;
@@ -304,6 +318,20 @@ type CreateTransactionRequest = {
   note?: string;
   image_url?: string;
   image_file?: File | null;
+};
+
+type CreateTransferTransactionRequest = {
+  from_wallet_id: string;
+  to_wallet_id: string;
+  category_id?: string;
+  amount: number;
+  transaction_date?: string;
+  note?: string;
+};
+
+type CreateTransferTransactionResponse = {
+  from_transaction: TransactionItemResponse;
+  to_transaction: TransactionItemResponse;
 };
 
 type UpdateTransactionRequest = {
@@ -661,6 +689,16 @@ export const useAuthApi = () => {
     return res;
   };
 
+  const applyLoginSession = (payload: LoginResponse) => {
+    saveSession({
+      accessToken: payload.access_token,
+      refreshToken: payload.refresh_token,
+      tokenType: payload.token_type,
+      expiresIn: payload.expires_in,
+      refreshExpiresIn: payload.refresh_expires_in,
+    });
+  };
+
   const refreshMemberToken = async (refreshToken?: string) => {
     if (refreshInFlight) {
       return await refreshInFlight;
@@ -773,6 +811,41 @@ export const useAuthApi = () => {
     return await requestWithAuth<MeSettingsResponse>("/me/settings/notifications", {
       method: "PATCH",
       body: JSON.stringify(body),
+    });
+  };
+
+  const listMyNotifications = async (params?: { includeRead?: boolean; limit?: number }) => {
+    const query = new URLSearchParams();
+    if (typeof params?.includeRead === "boolean") {
+      query.set("include_read", String(params.includeRead));
+    }
+    if (typeof params?.limit === "number" && Number.isFinite(params.limit)) {
+      query.set("limit", String(params.limit));
+    }
+
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+    return await requestWithAuth<MeNotificationItemResponse[]>(`/me/notifications${suffix}`, {
+      method: "GET",
+    });
+  };
+
+  const setMyNotificationRead = async (notificationID: string, isRead = true) => {
+    return await requestWithAuth<MeNotificationItemResponse>(`/me/notifications/${notificationID}/read`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_read: isRead }),
+    });
+  };
+
+  const markAllMyNotificationsRead = async () => {
+    return await requestWithAuth<unknown>("/me/notifications/read-all", {
+      method: "PATCH",
+      body: JSON.stringify({}),
+    });
+  };
+
+  const clearMyNotifications = async () => {
+    return await requestWithAuth<unknown>("/me/notifications", {
+      method: "DELETE",
     });
   };
 
@@ -1036,6 +1109,13 @@ export const useAuthApi = () => {
     });
   };
 
+  const createMyTransferTransaction = async (body: CreateTransferTransactionRequest) => {
+    return await requestWithAuth<CreateTransferTransactionResponse>("/balances/transactions/transfer", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  };
+
   const uploadMyTransactionSlip = async (walletID: string, imageFile: File) => {
     const formData = new FormData();
     formData.append("wallet_id", walletID);
@@ -1088,6 +1168,10 @@ export const useAuthApi = () => {
     getMySettings,
     updateMySettings,
     updateMyNotificationSettings,
+    listMyNotifications,
+    setMyNotificationRead,
+    markAllMyNotificationsRead,
+    clearMyNotifications,
     getSystemManifest,
     listMyWallets,
     createMyWallet,
@@ -1105,12 +1189,14 @@ export const useAuthApi = () => {
     listMyTransactions,
     listMyTransactionMonthlySummary,
     createMyTransaction,
+    createMyTransferTransaction,
     uploadMyTransactionSlip,
     getMyTransactionSlip,
     getMyTransaction,
     updateMyTransaction,
     deleteMyTransaction,
     loginMember,
+    applyLoginSession,
     refreshMemberToken,
     registerMember,
     listGenders,

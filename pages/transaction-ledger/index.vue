@@ -361,12 +361,14 @@
                   <p
                     :class="[
                       'text-sm font-semibold',
-                      item.type === 'expense'
+                      item.isTransfer
+                        ? 'text-blue-600'
+                        : item.type === 'expense'
                         ? 'text-rose-500'
                         : 'text-emerald-500',
                     ]"
                   >
-                    {{ item.type === "expense" ? "-" : "+" }}
+                    {{ item.isTransfer ? '' : (item.type === "expense" ? "-" : "+") }}
                     {{ item.amount.toLocaleString() }}
                   </p>
                 </div>
@@ -501,6 +503,17 @@
                 >
                   Expenses
                 </button>
+                <button
+                  @click="historyTypeFilter = 'transfer'"
+                  :class="[
+                    'text-[10px] font-bold uppercase tracking-widest pb-1 border-b-2 transition-colors',
+                    historyTypeFilter === 'transfer'
+                      ? 'text-slate-900 border-slate-900'
+                      : 'text-slate-400 border-transparent hover:text-slate-900',
+                  ]"
+                >
+                  Transfer
+                </button>
               </div>
               <div
                 class="text-[10px] font-bold text-slate-300 uppercase tracking-widest"
@@ -530,12 +543,18 @@
                   </div>
                   <div>
                     <p class="text-sm font-medium text-slate-900">
-                      {{ item.note || item.category }}
+                      {{ item.displayNote || item.note || item.category }}
                     </p>
                     <p
                       class="text-[9px] text-slate-400 uppercase tracking-[0.2em] mt-0.5"
                     >
-                      {{ item.category }} • {{ item.wallet }}
+                      {{ item.displayCategory }} • {{ item.wallet }}
+                    </p>
+                    <p
+                      v-if="item.isTransfer"
+                      class="text-[9px] text-blue-600 uppercase tracking-[0.15em] mt-1"
+                    >
+                      {{ item.transferRouteLabel }}
                     </p>
                   </div>
                 </div>
@@ -543,23 +562,32 @@
                   <p
                     :class="[
                       'text-sm font-semibold tracking-tight',
-                      item.type === 'expense'
+                      item.isTransfer
+                        ? 'text-blue-600'
+                        : item.type === 'expense'
                         ? 'text-rose-500'
                         : 'text-emerald-500',
                     ]"
                   >
-                    {{ item.type === "expense" ? "-" : "+" }}
+                    {{ item.isTransfer ? '' : (item.type === "expense" ? "-" : "+") }}
                     {{
                       item.amount.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                       })
                     }}
                   </p>
-                  <p
-                    class="text-[9px] text-slate-300 uppercase tracking-widest mt-1"
+                  <span
+                    :class="[
+                      'mt-1 inline-flex rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest',
+                      item.isTransfer
+                        ? 'bg-blue-100 text-blue-700'
+                        : item.type === 'expense'
+                          ? 'bg-rose-100 text-rose-700'
+                          : 'bg-emerald-100 text-emerald-700',
+                    ]"
                   >
-                    Confirmed
-                  </p>
+                    {{ item.entryTypeLabel }}
+                  </span>
                   <div class="mt-2 flex items-center justify-end gap-3">
                     <button
                       class="text-[9px] font-bold uppercase tracking-widest text-indigo-500 hover:text-indigo-700"
@@ -820,6 +848,16 @@ import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
 type TransactionType = "income" | "expense";
+type TransactionFilter = "all" | TransactionType | "transfer";
+
+type TransferDirection = "in" | "out";
+
+type TransferNoteMeta = {
+  ref: string;
+  direction: TransferDirection;
+  counterpartyWalletID: string;
+  userNote: string;
+};
 
 type WalletItem = {
   id: string;
@@ -851,6 +889,35 @@ type LedgerItem = {
   type: TransactionType;
   wallet: string;
   date: string;
+  isTransfer: boolean;
+  transferMeta: TransferNoteMeta | null;
+  entryTypeLabel: string;
+  displayCategory: string;
+  displayNote: string;
+  transferRouteLabel: string;
+};
+
+const transferNotePrefix = "__transfer__|";
+
+const parseTransferNote = (note: string): TransferNoteMeta | null => {
+  if (!note.startsWith(transferNotePrefix)) {
+    return null;
+  }
+
+  const [prefix, ref, direction, counterpartyWalletID, ...rest] = note.split("|");
+  if (prefix !== "__transfer__") {
+    return null;
+  }
+  if (!ref || (direction !== "in" && direction !== "out") || !counterpartyWalletID) {
+    return null;
+  }
+
+  return {
+    ref,
+    direction,
+    counterpartyWalletID,
+    userNote: rest.join("|").trim(),
+  };
 };
 
 const mobileSidebarOpen = ref(false);
@@ -868,7 +935,7 @@ const wallets = ref<WalletItem[]>([]);
 const categories = ref<CategoryItem[]>([]);
 const budgets = ref<BudgetItem[]>([]);
 const allTransactions = ref<LedgerItem[]>([]);
-const historyTypeFilter = ref<"all" | TransactionType>("all");
+const historyTypeFilter = ref<TransactionFilter>("all");
 const pageLoading = ref(false);
 const actionLoading = ref(false);
 const actionError = ref("");
@@ -961,6 +1028,9 @@ const recentTransactionsSnapshot = computed(() => allTransactions.value.slice(0,
 const filteredTransactions = computed(() => {
   if (historyTypeFilter.value === "all") {
     return allTransactions.value;
+  }
+  if (historyTypeFilter.value === "transfer") {
+    return allTransactions.value.filter((item) => item.isTransfer);
   }
   return allTransactions.value.filter((item) => item.type === historyTypeFilter.value);
 });
@@ -1081,6 +1151,40 @@ const loadTransactions = async () => {
   const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
 
   allTransactions.value = (res.items || []).map((item) => ({
+    ...(() => {
+      const rawNote = item.note || "";
+      const transferMeta = parseTransferNote(rawNote);
+      const isTransfer = transferMeta !== null || rawNote === "Wallet transfer";
+      const counterpartyWalletName = transferMeta
+        ? walletMap.get(transferMeta.counterpartyWalletID) || "Unknown Wallet"
+        : "Unknown Wallet";
+      const transferRouteLabel = transferMeta
+        ? transferMeta.direction === "out"
+          ? `From ${item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet"} to ${counterpartyWalletName}`
+          : `From ${counterpartyWalletName} to ${item.wallet_id ? walletMap.get(item.wallet_id) || "Unknown Wallet" : "Unknown Wallet"}`
+        : "Wallet transfer";
+
+      return {
+        isTransfer,
+        transferMeta,
+        entryTypeLabel: isTransfer
+          ? transferMeta?.direction === "out"
+            ? "Transfer Out"
+            : transferMeta?.direction === "in"
+              ? "Transfer In"
+              : "Transfer"
+          : item.type === "expense"
+            ? "Expense"
+            : "Income",
+        displayCategory: isTransfer ? "Transfer" : (item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized"),
+        displayNote: isTransfer
+          ? transferMeta?.userNote
+            ? `Transfer ${transferMeta.direction === "out" ? "to" : "from"} ${counterpartyWalletName} - ${transferMeta.userNote}`
+            : `Transfer ${transferMeta?.direction === "out" ? "to" : transferMeta?.direction === "in" ? "from" : "between"} ${counterpartyWalletName}`
+          : rawNote,
+        transferRouteLabel,
+      };
+    })(),
     id: item.id,
     walletID: item.wallet_id || "",
     categoryID: item.category_id || "",

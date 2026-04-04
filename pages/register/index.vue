@@ -9,10 +9,32 @@
       <!-- Main Card -->
       <div class="premium-card rounded-[2.5rem] p-10 md:p-14 border border-white/80 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.03)] bg-white/70 backdrop-blur-2xl">
         
+        <div class="mb-8 flex items-center justify-end gap-2">
+          <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t.language }}</span>
+          <div class="inline-flex rounded-xl border border-slate-200 bg-white/80 p-1">
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wider transition-colors"
+              :class="locale === 'en' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-900'"
+              @click="locale = 'en'"
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wider transition-colors"
+              :class="locale === 'th' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-900'"
+              @click="locale = 'th'"
+            >
+              TH
+            </button>
+          </div>
+        </div>
+
         <!-- Header -->
         <div class="mb-12 text-center">
-          <h1 class="text-[10px] font-bold tracking-[0.5em] text-slate-400 uppercase mb-3 whitespace-nowrap">Create Archive</h1>
-          <h2 class="text-4xl font-light tracking-tighter text-slate-900 uppercase">Register</h2>
+          <h1 class="text-[10px] font-bold tracking-[0.5em] text-slate-400 uppercase mb-3 whitespace-nowrap">{{ t.brandTagline }}</h1>
+          <h2 class="text-4xl font-light tracking-tighter text-slate-900 uppercase">{{ t.registerTitle }}</h2>
         </div>
 
         <!-- Registration Form -->
@@ -20,15 +42,15 @@
           
           <!-- Personal Information Section -->
           <div class="space-y-6">
-            <h3 class="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] border-b border-slate-200 pb-2">Personal Detail</h3>
+            <h3 class="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] border-b border-slate-200 pb-2">{{ t.personalDetail }}</h3>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <!-- Gender -->
               <div class="space-y-2">
-                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Gender</label>
+                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">{{ t.genderLabel }}</label>
                 <AppDropdown
                   v-model="form.gender_id"
-                  label="Select Gender"
+                  :label="t.selectGender"
                   :items="genderDropdownItems"
                   unstyled
                   trigger-class="w-full rounded-2xl border border-slate-300 bg-white px-6 py-4 text-sm text-slate-900 outline-none transition-all focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 flex items-center justify-between"
@@ -38,10 +60,10 @@
 
               <!-- Prefix -->
               <div class="space-y-2">
-                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Prefix</label>
+                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">{{ t.prefixLabel }}</label>
                 <AppDropdown
                   v-model="form.prefix_id"
-                  :label="!form.gender_id ? 'Select Gender first' : (filteredPrefixes.length ? 'Select Prefix' : 'No prefix available')"
+                  :label="!form.gender_id ? t.selectGenderFirst : (filteredPrefixes.length ? t.selectPrefix : t.noPrefixAvailable)"
                   :items="prefixDropdownItems"
                   :disabled="!form.gender_id || filteredPrefixes.length === 0"
                   unstyled
@@ -53,24 +75,24 @@
 
               <!-- First Name -->
               <div class="space-y-2">
-                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">First Name</label>
+                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">{{ t.firstNameLabel }}</label>
                 <input 
                   v-model="form.first_name"
                   type="text" 
                   class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm"
-                  placeholder="Your first name"
+                  :placeholder="t.firstNamePlaceholder"
                   required
                 >
               </div>
 
               <!-- Last Name -->
               <div class="space-y-2">
-                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Last Name</label>
+                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">{{ t.lastNameLabel }}</label>
                 <input 
                   v-model="form.last_name"
                   type="text" 
                   class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm"
-                  placeholder="Your last name"
+                  :placeholder="t.lastNamePlaceholder"
                   required
                 >
               </div>
@@ -78,12 +100,12 @@
 
             <!-- Phone Number -->
             <div class="space-y-2">
-              <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Phone Number</label>
+              <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">{{ t.phoneLabel }}</label>
               <input 
                 v-model="form.phone"
                 type="tel" 
                 class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm"
-                placeholder="081-XXX-XXXX"
+                :placeholder="t.phonePlaceholder"
                 required
               >
             </div>
@@ -91,17 +113,17 @@
 
           <!-- Account Information Section -->
           <div class="space-y-6 pt-4">
-            <h3 class="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] border-b border-slate-200 pb-2">Account Credential</h3>
+            <h3 class="text-[11px] font-bold text-slate-900 uppercase tracking-[0.2em] border-b border-slate-200 pb-2">{{ t.accountCredential }}</h3>
             
             <div class="space-y-6">
               <!-- Username -->
               <div class="space-y-2">
-                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Username</label>
+                <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">{{ t.usernameLabel }}</label>
                 <input 
                   v-model="form.username"
                   type="text" 
                   class="custom-input w-full px-6 py-4 rounded-2xl outline-none text-sm"
-                  placeholder="Choose a username"
+                  :placeholder="t.usernamePlaceholder"
                   required
                 >
               </div>
@@ -109,7 +131,7 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Password -->
                 <div class="space-y-2">
-                  <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Password</label>
+                  <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">{{ t.passwordLabel }}</label>
                   <div class="relative">
                     <input 
                       v-model="form.password"
@@ -120,7 +142,7 @@
                     >
                     <button
                       type="button"
-                      :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                      :aria-label="showPassword ? t.hidePassword : t.showPassword"
                       class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-indigo-600 transition-colors"
                       @click="showPassword = !showPassword"
                     >
@@ -140,7 +162,7 @@
 
                 <!-- Confirm Password -->
                 <div class="space-y-2">
-                  <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">Confirm Password</label>
+                  <label class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest block ml-1">{{ t.confirmPasswordLabel }}</label>
                   <div class="relative">
                     <input 
                       v-model="form.confirm_password"
@@ -151,7 +173,7 @@
                     >
                     <button
                       type="button"
-                      :aria-label="showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'"
+                      :aria-label="showConfirmPassword ? t.hideConfirmPassword : t.showConfirmPassword"
                       class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-indigo-600 transition-colors"
                       @click="showConfirmPassword = !showConfirmPassword"
                     >
@@ -172,6 +194,28 @@
             </div>
           </div>
 
+          <div class="pt-2">
+            <div class="mb-4 flex items-center gap-3">
+              <div class="h-px flex-1 bg-slate-200"></div>
+              <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t.orContinueWith }}</p>
+              <div class="h-px flex-1 bg-slate-200"></div>
+            </div>
+
+            <button
+              type="button"
+              class="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-xs font-semibold tracking-wide text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
+              @click="handleGoogleLogin"
+            >
+              <svg viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">
+                <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.9 2.9 14.7 2 12 2 6.9 2 2.8 6.2 2.8 11.3s4.1 9.3 9.2 9.3c5.3 0 8.8-3.8 8.8-9.1 0-.6-.1-1.1-.2-1.3H12z"/>
+                <path fill="#34A853" d="M2.8 6.7l3.2 2.3c.9-1.9 2.9-3.3 6-3.3 1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.9 2.9 14.7 2 12 2 8 2 4.5 4.3 2.8 6.7z"/>
+                <path fill="#FBBC05" d="M12 20.6c2.6 0 4.7-.8 6.3-2.3l-2.9-2.4c-.8.6-1.8 1.1-3.4 1.1-3.9 0-5.3-2.6-5.5-3.9l-3.3 2.6c1.7 3.3 5 4.9 8.8 4.9z"/>
+                <path fill="#4285F4" d="M20.8 11.5c0-.6-.1-1.1-.2-1.3H12v3.9h5.5c-.2 1.1-1 2.5-2.1 3.2l2.9 2.4c1.7-1.6 2.5-4 2.5-6.8z"/>
+              </svg>
+              <span>{{ t.continueWithGoogle }}</span>
+            </button>
+          </div>
+
           <!-- Action Button -->
           <div class="pt-8">
             <button 
@@ -183,7 +227,7 @@
                 <div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
               </div>
               <span v-else class="text-white text-xs font-bold tracking-[0.3em] uppercase">
-                Create Account
+                {{ t.createAccountButton }}
               </span>
               <div class="absolute bottom-0 left-0 h-1 w-0 bg-indigo-500 transition-all group-hover:w-full"></div>
             </button>
@@ -193,9 +237,9 @@
         <!-- Back to Login -->
         <div class="mt-12 text-center pt-8 border-t border-slate-50">
           <p class="text-xs text-slate-400 font-light">
-            Already have an archive? 
+            {{ t.alreadyHaveArchive }}
             <NuxtLink to="/" class="text-slate-900 font-semibold border-b border-slate-900/10 hover:border-slate-900 transition-all ml-1 pb-0.5">
-              Login
+              {{ t.loginLink }}
             </NuxtLink>
           </p>
         </div>
@@ -204,7 +248,7 @@
       <!-- Status -->
       <div class="mt-10 text-center flex items-center justify-center space-x-3">
         <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-        <p class="text-[9px] text-slate-400 uppercase tracking-[0.3em]">Encrypted Connection</p>
+        <p class="text-[9px] text-slate-400 uppercase tracking-[0.3em]">{{ t.encryptedConnection }}</p>
       </div>
     </div>
 
@@ -220,12 +264,104 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useRuntimeConfig } from 'nuxt/app'
 import { useAuthApi } from '../../composables/useAuthApi'
+
+const LOCALE_KEY = 'balance_app_locale'
+const LOCALE_EVENT = 'app-locale-changed'
+type Locale = 'en' | 'th'
+
+const normalizeLocale = (value: string | null | undefined): Locale => {
+  if (value === 'th' || value === 'TH') {
+    return 'th'
+  }
+
+  return 'en'
+}
+
+const translations: Record<Locale, Record<string, string>> = {
+  en: {
+    fallbackRequestFailed: 'Request failed',
+    brandTagline: 'Create Archive',
+    registerTitle: 'Register',
+    personalDetail: 'Personal Detail',
+    genderLabel: 'Gender',
+    selectGender: 'Select Gender',
+    prefixLabel: 'Prefix',
+    selectGenderFirst: 'Select Gender first',
+    selectPrefix: 'Select Prefix',
+    noPrefixAvailable: 'No prefix available',
+    firstNameLabel: 'First Name',
+    firstNamePlaceholder: 'Your first name',
+    lastNameLabel: 'Last Name',
+    lastNamePlaceholder: 'Your last name',
+    phoneLabel: 'Phone Number',
+    phonePlaceholder: '081-XXX-XXXX',
+    accountCredential: 'Account Credential',
+    usernameLabel: 'Username',
+    usernamePlaceholder: 'Choose a username',
+    passwordLabel: 'Password',
+    confirmPasswordLabel: 'Confirm Password',
+    hidePassword: 'Hide password',
+    showPassword: 'Show password',
+    hideConfirmPassword: 'Hide confirm password',
+    showConfirmPassword: 'Show confirm password',
+    createAccountButton: 'Create Account',
+    alreadyHaveArchive: 'Already have an archive?',
+    loginLink: 'Login',
+    encryptedConnection: 'Encrypted Connection',
+    passwordMismatch: 'Passwords do not match',
+    accountCreatedSuccess: 'Account Created Successfully',
+    language: 'Language',
+    orContinueWith: 'Or continue with',
+    continueWithGoogle: 'Continue with Google',
+    googleLoginUnavailable: 'Google login is not configured',
+  },
+  th: {
+    fallbackRequestFailed: 'ไม่สามารถส่งคำขอได้',
+    brandTagline: 'สร้างคลังข้อมูล',
+    registerTitle: 'สมัครสมาชิก',
+    personalDetail: 'ข้อมูลส่วนตัว',
+    genderLabel: 'เพศ',
+    selectGender: 'เลือกเพศ',
+    prefixLabel: 'คำนำหน้า',
+    selectGenderFirst: 'กรุณาเลือกเพศก่อน',
+    selectPrefix: 'เลือกคำนำหน้า',
+    noPrefixAvailable: 'ไม่มีคำนำหน้าที่ใช้งานได้',
+    firstNameLabel: 'ชื่อ',
+    firstNamePlaceholder: 'กรอกชื่อ',
+    lastNameLabel: 'นามสกุล',
+    lastNamePlaceholder: 'กรอกนามสกุล',
+    phoneLabel: 'เบอร์โทรศัพท์',
+    phonePlaceholder: '081-XXX-XXXX',
+    accountCredential: 'ข้อมูลบัญชี',
+    usernameLabel: 'ชื่อผู้ใช้งาน',
+    usernamePlaceholder: 'ตั้งชื่อผู้ใช้งาน',
+    passwordLabel: 'รหัสผ่าน',
+    confirmPasswordLabel: 'ยืนยันรหัสผ่าน',
+    hidePassword: 'ซ่อนรหัสผ่าน',
+    showPassword: 'แสดงรหัสผ่าน',
+    hideConfirmPassword: 'ซ่อนรหัสผ่านยืนยัน',
+    showConfirmPassword: 'แสดงรหัสผ่านยืนยัน',
+    createAccountButton: 'สร้างบัญชี',
+    alreadyHaveArchive: 'มีบัญชีอยู่แล้ว?',
+    loginLink: 'เข้าสู่ระบบ',
+    encryptedConnection: 'การเชื่อมต่อเข้ารหัส',
+    passwordMismatch: 'รหัสผ่านไม่ตรงกัน',
+    accountCreatedSuccess: 'สร้างบัญชีสำเร็จ',
+    language: 'ภาษา',
+    orContinueWith: 'หรือเข้าสู่ระบบด้วย',
+    continueWithGoogle: 'เข้าสู่ระบบด้วย Google',
+    googleLoginUnavailable: 'ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Google',
+  },
+}
 
 const loading = ref(false)
 const message = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
+const locale = ref<Locale>('en')
+const config = useRuntimeConfig()
 const router = useRouter()
 const authApi = useAuthApi()
 
@@ -244,13 +380,15 @@ type PrefixItem = {
 
 const genders = ref<GenderItem[]>([])
 const prefixes = ref<PrefixItem[]>([])
+const t = computed(() => translations[locale.value])
+const googleAuthUrl = computed(() => String(config.public.googleAuthUrl || '').trim())
 
 const extractErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) {
     return error.message
   }
 
-  return 'Request failed'
+  return t.value.fallbackRequestFailed
 }
 
 const filteredPrefixes = computed(() => {
@@ -288,6 +426,24 @@ watch(
 )
 
 onMounted(async () => {
+  if (typeof window !== 'undefined') {
+    locale.value = normalizeLocale(localStorage.getItem(LOCALE_KEY))
+
+    document.documentElement.lang = locale.value
+
+    window.addEventListener(LOCALE_EVENT, (event) => {
+      locale.value = normalizeLocale((event as CustomEvent<string>).detail)
+    })
+
+    window.addEventListener('storage', (event) => {
+      if (event.key !== LOCALE_KEY) {
+        return
+      }
+
+      locale.value = normalizeLocale(event.newValue)
+    })
+  }
+
   try {
     const [genderRes, prefixRes] = await Promise.all([
       authApi.listGenders(),
@@ -304,9 +460,23 @@ onMounted(async () => {
   }
 })
 
+const handleGoogleLogin = () => {
+  if (!googleAuthUrl.value) {
+    message.value = t.value.googleLoginUnavailable
+    setTimeout(() => {
+      message.value = ''
+    }, 3000)
+    return
+  }
+
+  if (typeof window !== 'undefined') {
+    window.location.assign(googleAuthUrl.value)
+  }
+}
+
 const handleRegister = async () => {
   if (form.password !== form.confirm_password) {
-    message.value = 'Passwords do not match'
+    message.value = t.value.passwordMismatch
     setTimeout(() => message.value = '', 3000)
     return
   }
@@ -324,7 +494,7 @@ const handleRegister = async () => {
       password: form.password,
     })
 
-    message.value = 'Account Created Successfully'
+    message.value = t.value.accountCreatedSuccess
     setTimeout(() => {
       message.value = ''
     }, 3000)
@@ -338,6 +508,15 @@ const handleRegister = async () => {
     loading.value = false
   }
 }
+
+watch(locale, (nextLocale) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  localStorage.setItem(LOCALE_KEY, nextLocale)
+  document.documentElement.lang = nextLocale
+})
 </script>
 
 <style scoped>

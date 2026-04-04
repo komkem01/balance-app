@@ -348,28 +348,36 @@
                     <div
                       class="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-[10px] font-bold text-slate-400"
                     >
-                      {{ item.category.substring(0, 2).toUpperCase() }}
+                      {{ item.displayCategory.substring(0, 2).toUpperCase() }}
                     </div>
                     <div>
                       <p class="text-sm font-medium text-slate-900">
-                        {{ item.note || item.category }}
+                        {{ item.displayNote || item.note || item.category }}
                       </p>
                       <p
                         class="text-[10px] text-slate-400 uppercase tracking-widest"
                       >
-                        {{ item.wallet }} • {{ item.date }}
+                        {{ item.displayCategory }} • {{ item.wallet }} • {{ item.date }}
                       </p>
+                      <span
+                        v-if="item.isTransfer"
+                        class="mt-1 inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-blue-700"
+                      >
+                        Transfer
+                      </span>
                     </div>
                   </div>
                   <p
                     :class="[
                       'text-sm font-semibold',
-                      item.type === 'expense'
+                      item.isTransfer
+                        ? 'text-blue-600'
+                        : item.type === 'expense'
                         ? 'text-rose-500'
                         : 'text-emerald-500',
                     ]"
                   >
-                    {{ item.type === "expense" ? "-" : "+" }}
+                    {{ item.isTransfer ? '' : (item.type === "expense" ? "-" : "+") }}
                     {{ item.amount.toLocaleString() }}
                   </p>
                 </div>
@@ -524,6 +532,15 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 
 type TransactionType = "income" | "expense";
 
+type TransferDirection = "in" | "out";
+
+type TransferNoteMeta = {
+  ref: string;
+  direction: TransferDirection;
+  counterpartyWalletID: string;
+  userNote: string;
+};
+
 type WalletItem = {
   id: string;
   name: string;
@@ -553,6 +570,32 @@ type TransactionItem = {
   date: string;
   transactionDateRaw: string | null;
   createdAtRaw: string | null;
+  isTransfer: boolean;
+  displayCategory: string;
+  displayNote: string;
+};
+
+const transferNotePrefix = "__transfer__|";
+
+const parseTransferNote = (note: string): TransferNoteMeta | null => {
+  if (!note.startsWith(transferNotePrefix)) {
+    return null;
+  }
+
+  const [prefix, ref, direction, counterpartyWalletID, ...rest] = note.split("|");
+  if (prefix !== "__transfer__") {
+    return null;
+  }
+  if (!ref || (direction !== "in" && direction !== "out") || !counterpartyWalletID) {
+    return null;
+  }
+
+  return {
+    ref,
+    direction,
+    counterpartyWalletID,
+    userNote: rest.join("|").trim(),
+  };
 };
 
 type MonthlyPerformanceItem = {
@@ -701,6 +744,10 @@ const buildMonthlySummaryFromTransactions = () => {
   const monthlyMap = new Map<string, MonthlySummaryAggregateItem>();
 
   for (const item of allTransactions.value) {
+    if (item.isTransfer) {
+      continue;
+    }
+
     const rawDate = item.transactionDateRaw || item.createdAtRaw;
     if (!rawDate) {
       continue;
@@ -940,6 +987,24 @@ const loadTransactions = async () => {
   const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
 
   allTransactions.value = (res.items || []).map((item) => ({
+    ...(() => {
+      const rawNote = item.note || "";
+      const transferMeta = parseTransferNote(rawNote);
+      const isTransfer = transferMeta !== null || rawNote === "Wallet transfer";
+      const counterpartyWalletName = transferMeta
+        ? walletMap.get(transferMeta.counterpartyWalletID) || "Unknown Wallet"
+        : "Unknown Wallet";
+
+      return {
+        isTransfer,
+        displayCategory: isTransfer ? "Transfer" : (item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized"),
+        displayNote: isTransfer
+          ? transferMeta?.userNote
+            ? `Transfer ${transferMeta.direction === "out" ? "to" : "from"} ${counterpartyWalletName} - ${transferMeta.userNote}`
+            : `Transfer ${transferMeta?.direction === "out" ? "to" : transferMeta?.direction === "in" ? "from" : "between"} ${counterpartyWalletName}`
+          : rawNote,
+      };
+    })(),
     id: item.id,
     walletID: item.wallet_id || "",
     category: item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized",

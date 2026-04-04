@@ -1,15 +1,80 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, watch } from "vue"
+import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
+import { useRuntimeConfig } from "nuxt/app"
 import { useAuthApi } from "../composables/useAuthApi"
 
 const REMEMBERED_USERNAME_KEY = "balance_app_remembered_username"
+const LOCALE_KEY = "balance_app_locale"
+const LOCALE_EVENT = "app-locale-changed"
+type Locale = "en" | "th"
+
+const normalizeLocale = (value: string | null | undefined): Locale => {
+  if (value === "th" || value === "TH") {
+    return "th"
+  }
+
+  return "en"
+}
+
+const translations: Record<Locale, Record<string, string>> = {
+  en: {
+    fallbackRequestFailed: "Request failed",
+    loginSuccess: "Security Verified",
+    sessionExpired: "Session expired, please login again",
+    brandTagline: "Wealth Archive",
+    usernameLabel: "Identification",
+    usernamePlaceholder: "Username",
+    passwordLabel: "Security Key",
+    hidePassword: "Hide password",
+    showPassword: "Show password",
+    rememberMe: "Keep me signed in",
+    loginButton: "Login",
+    newToSystem: "New to the system?",
+    register: "Register",
+    systemOperational: "System Operational",
+    language: "Language",
+    orContinueWith: "Or continue with",
+    continueWithGoogle: "Continue with Google",
+    googleLoginUnavailable: "Google login is not configured",
+    googleLoginFailed: "Google sign-in failed, please try again",
+    googleLoginFailedInvalidState: "Google sign-in failed: invalid state",
+    googleLoginFailedDenied: "Google sign-in was cancelled",
+    googleLoginFailedDisabled: "Google sign-in is currently unavailable",
+  },
+  th: {
+    fallbackRequestFailed: "ไม่สามารถส่งคำขอได้",
+    loginSuccess: "ยืนยันความปลอดภัยเรียบร้อย",
+    sessionExpired: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
+    brandTagline: "คลังความมั่งคั่ง",
+    usernameLabel: "ชื่อผู้ใช้งาน",
+    usernamePlaceholder: "กรอกชื่อผู้ใช้งาน",
+    passwordLabel: "รหัสผ่าน",
+    hidePassword: "ซ่อนรหัสผ่าน",
+    showPassword: "แสดงรหัสผ่าน",
+    rememberMe: "จดจำการเข้าสู่ระบบ",
+    loginButton: "เข้าสู่ระบบ",
+    newToSystem: "ยังไม่มีบัญชี?",
+    register: "สมัครสมาชิก",
+    systemOperational: "ระบบพร้อมใช้งาน",
+    language: "ภาษา",
+    orContinueWith: "หรือเข้าสู่ระบบด้วย",
+    continueWithGoogle: "เข้าสู่ระบบด้วย Google",
+    googleLoginUnavailable: "ยังไม่ได้ตั้งค่าการเข้าสู่ระบบด้วย Google",
+    googleLoginFailed: "เข้าสู่ระบบด้วย Google ไม่สำเร็จ กรุณาลองใหม่",
+    googleLoginFailedInvalidState: "เข้าสู่ระบบด้วย Google ไม่สำเร็จ: สถานะไม่ถูกต้อง",
+    googleLoginFailedDenied: "ยกเลิกการเข้าสู่ระบบด้วย Google",
+    googleLoginFailedDisabled: "ยังไม่พร้อมใช้งานการเข้าสู่ระบบด้วย Google",
+  },
+}
 
 const router = useRouter()
 const route = useRoute()
+const config = useRuntimeConfig()
 const loading = ref(false)
 const message = ref("")
 const showPassword = ref(false)
+const locale = ref<Locale>("en")
 const authApi = useAuthApi()
 const form = reactive({
   username: "",
@@ -17,12 +82,15 @@ const form = reactive({
   remember: false
 })
 
+const t = computed(() => translations[locale.value])
+const googleAuthUrl = computed(() => String(config.public.googleAuthUrl || "").trim())
+
 const extractErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) {
     return error.message
   }
 
-  return "Request failed"
+  return t.value.fallbackRequestFailed
 }
 
 async function handleLogin() {
@@ -43,7 +111,7 @@ async function handleLogin() {
       }
     }
 
-    message.value = "Security Verified"
+    message.value = t.value.loginSuccess
     await router.push("/dashboard")
   } catch (error) {
     message.value = extractErrorMessage(error)
@@ -55,13 +123,59 @@ async function handleLogin() {
   }
 }
 
+function handleGoogleLogin() {
+  if (!googleAuthUrl.value) {
+    message.value = t.value.googleLoginUnavailable
+    setTimeout(() => {
+      message.value = ""
+    }, 3000)
+    return
+  }
+
+  if (typeof window !== "undefined") {
+    window.location.assign(googleAuthUrl.value)
+  }
+}
+
 onMounted(() => {
   if (typeof window === "undefined") {
     return
   }
 
+  locale.value = normalizeLocale(localStorage.getItem(LOCALE_KEY))
+
+  document.documentElement.lang = locale.value
+
+  window.addEventListener(LOCALE_EVENT, (event) => {
+    locale.value = normalizeLocale((event as CustomEvent<string>).detail)
+  })
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== LOCALE_KEY) {
+      return
+    }
+
+    locale.value = normalizeLocale(event.newValue)
+  })
+
   if (route.query.reason === "session-expired") {
-    message.value = "Session expired, please login again"
+    message.value = t.value.sessionExpired
+    setTimeout(() => {
+      message.value = ""
+    }, 3000)
+
+    router.replace({ path: "/" })
+  } else if (typeof route.query.reason === "string" && route.query.reason.startsWith("google-oauth")) {
+    const reason = route.query.reason
+    if (reason === "google-oauth-invalid-state") {
+      message.value = t.value.googleLoginFailedInvalidState
+    } else if (reason === "google-oauth-denied") {
+      message.value = t.value.googleLoginFailedDenied
+    } else if (reason === "google-oauth-disabled") {
+      message.value = t.value.googleLoginFailedDisabled
+    } else {
+      message.value = t.value.googleLoginFailed
+    }
     setTimeout(() => {
       message.value = ""
     }, 3000)
@@ -86,6 +200,15 @@ watch(
     localStorage.removeItem(REMEMBERED_USERNAME_KEY)
   }
 )
+
+watch(locale, (nextLocale) => {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  localStorage.setItem(LOCALE_KEY, nextLocale)
+  document.documentElement.lang = nextLocale
+})
 </script>
 
 <template>
@@ -106,28 +229,50 @@ watch(
 
     <div class="relative z-10 w-full max-w-md">
       <div class="rounded-[2.5rem] border border-white/80 bg-white/70 p-10 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.03)] backdrop-blur-2xl md:p-14">
+        <div class="mb-8 flex items-center justify-end gap-2">
+          <span class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t.language }}</span>
+          <div class="inline-flex rounded-xl border border-slate-200 bg-white/80 p-1">
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wider transition-colors"
+              :class="locale === 'en' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-900'"
+              @click="locale = 'en'"
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              class="rounded-lg px-2.5 py-1 text-[10px] font-bold tracking-wider transition-colors"
+              :class="locale === 'th' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-900'"
+              @click="locale = 'th'"
+            >
+              TH
+            </button>
+          </div>
+        </div>
+
         <div class="mb-12 text-center">
-          <h1 class="mb-3 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.5em] text-slate-400">Wealth Archive</h1>
+          <h1 class="mb-3 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.5em] text-slate-400">{{ t.brandTagline }}</h1>
           <h2 class="text-4xl font-light tracking-tighter text-slate-900">BALANCE</h2>
         </div>
 
         <form class="space-y-7" @submit.prevent="handleLogin">
           <div class="group space-y-2">
             <label class="ml-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-400 transition-all group-focus-within:-translate-y-0.5 group-focus-within:text-indigo-600">
-              Identification
+              {{ t.usernameLabel }}
             </label>
             <input
               v-model="form.username"
               type="text"
               class="w-full rounded-2xl border border-slate-100 bg-white/50 px-6 py-4 text-sm outline-none transition-all placeholder:text-slate-300 focus:bg-white focus:shadow-[0_10px_15px_-3px_rgba(0,0,0,0.05)]"
-              placeholder="Username"
+              :placeholder="t.usernamePlaceholder"
               required
             >
           </div>
 
           <div class="group space-y-2">
             <label class="ml-1 block text-[10px] font-semibold uppercase tracking-widest text-slate-400 transition-all group-focus-within:-translate-y-0.5 group-focus-within:text-indigo-600">
-              Security Key
+              {{ t.passwordLabel }}
             </label>
             <div class="relative">
               <input
@@ -139,7 +284,7 @@ watch(
               >
               <button
                 type="button"
-                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                :aria-label="showPassword ? t.hidePassword : t.showPassword"
                 class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-indigo-600"
                 @click="showPassword = !showPassword"
               >
@@ -163,7 +308,7 @@ watch(
                 <input v-model="form.remember" type="checkbox" class="peer hidden">
                 <div class="h-full w-full rounded-md border border-slate-200 transition-all peer-checked:border-slate-900 peer-checked:bg-slate-900"></div>
               </div>
-              <span class="whitespace-nowrap text-[11px] text-slate-400 transition-colors group-hover:text-slate-600">Keep me signed in</span>
+              <span class="whitespace-nowrap text-[11px] text-slate-400 transition-colors group-hover:text-slate-600">{{ t.rememberMe }}</span>
             </label>
           </div>
 
@@ -176,17 +321,39 @@ watch(
               <div v-if="loading" class="flex items-center justify-center">
                 <div class="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white"></div>
               </div>
-              <span v-else class="text-xs font-bold uppercase tracking-[0.2em] text-white">Login</span>
+              <span v-else class="text-xs font-bold uppercase tracking-[0.2em] text-white">{{ t.loginButton }}</span>
               <div class="absolute bottom-0 left-0 h-1 w-0 bg-indigo-500 transition-all group-hover:w-full"></div>
+            </button>
+          </div>
+
+          <div class="pt-1">
+            <div class="mb-4 flex items-center gap-3">
+              <div class="h-px flex-1 bg-slate-200"></div>
+              <p class="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{{ t.orContinueWith }}</p>
+              <div class="h-px flex-1 bg-slate-200"></div>
+            </div>
+
+            <button
+              type="button"
+              class="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white px-6 py-3.5 text-xs font-semibold tracking-wide text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50"
+              @click="handleGoogleLogin"
+            >
+              <svg viewBox="0 0 24 24" class="h-5 w-5" aria-hidden="true">
+                <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.9-5.5 3.9-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.9 2.9 14.7 2 12 2 6.9 2 2.8 6.2 2.8 11.3s4.1 9.3 9.2 9.3c5.3 0 8.8-3.8 8.8-9.1 0-.6-.1-1.1-.2-1.3H12z"/>
+                <path fill="#34A853" d="M2.8 6.7l3.2 2.3c.9-1.9 2.9-3.3 6-3.3 1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.9 2.9 14.7 2 12 2 8 2 4.5 4.3 2.8 6.7z"/>
+                <path fill="#FBBC05" d="M12 20.6c2.6 0 4.7-.8 6.3-2.3l-2.9-2.4c-.8.6-1.8 1.1-3.4 1.1-3.9 0-5.3-2.6-5.5-3.9l-3.3 2.6c1.7 3.3 5 4.9 8.8 4.9z"/>
+                <path fill="#4285F4" d="M20.8 11.5c0-.6-.1-1.1-.2-1.3H12v3.9h5.5c-.2 1.1-1 2.5-2.1 3.2l2.9 2.4c1.7-1.6 2.5-4 2.5-6.8z"/>
+              </svg>
+              <span>{{ t.continueWithGoogle }}</span>
             </button>
           </div>
         </form>
 
         <div class="mt-12 text-center">
           <p class="text-xs font-light text-slate-400">
-            New to the system?
+            {{ t.newToSystem }}
             <a href="/register" class="ml-1 border-b border-slate-900/10 pb-0.5 font-semibold text-slate-900 transition-all hover:border-slate-900">
-              Register
+              {{ t.register }}
             </a>
           </p>
         </div>
@@ -194,7 +361,7 @@ watch(
 
       <div class="mt-10 flex items-center justify-center space-x-3 text-center">
         <div class="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500"></div>
-        <p class="text-[9px] uppercase tracking-[0.3em] text-slate-400">System Operational</p>
+        <p class="text-[9px] uppercase tracking-[0.3em] text-slate-400">{{ t.systemOperational }}</p>
       </div>
     </div>
 

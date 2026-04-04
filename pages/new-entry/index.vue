@@ -357,24 +357,32 @@
                     </div>
                     <div>
                       <p class="text-sm font-medium text-slate-900">
-                        {{ item.note || item.category }}
+                        {{ item.displayNote || item.note || item.category }}
                       </p>
                       <p
                         class="text-[10px] text-slate-400 uppercase tracking-widest"
                       >
-                        {{ item.wallet }} • {{ item.date }}
+                        {{ item.displayCategory }} • {{ item.wallet }} • {{ item.date }}
                       </p>
+                      <span
+                        v-if="item.isTransfer"
+                        class="mt-1 inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-blue-700"
+                      >
+                        Transfer
+                      </span>
                     </div>
                   </div>
                   <p
                     :class="[
                       'text-sm font-semibold',
-                      item.type === 'expense'
+                      item.isTransfer
+                        ? 'text-blue-600'
+                        : item.type === 'expense'
                         ? 'text-rose-500'
                         : 'text-emerald-500',
                     ]"
                   >
-                    {{ item.type === "expense" ? "-" : "+" }}
+                    {{ item.isTransfer ? '' : (item.type === "expense" ? "-" : "+") }}
                     {{ item.amount.toLocaleString() }}
                   </p>
                 </div>
@@ -476,7 +484,7 @@
             </h4>
 
             <form @submit.prevent="confirmSubmitTransaction" class="space-y-10">
-              <!-- Type Toggle (Income / Expense) -->
+              <!-- Type Toggle (Income / Expense / Transfer) -->
               <div
                 class="flex p-1.5 bg-slate-50 rounded-[2rem] max-w-sm mx-auto"
               >
@@ -504,6 +512,18 @@
                 >
                   Income
                 </button>
+                <button
+                  type="button"
+                  @click="newRecord.type = 'transfer'"
+                  :class="[
+                    'flex-1 py-4 rounded-[1.8rem] text-[10px] font-bold uppercase tracking-widest transition-all',
+                    newRecord.type === 'transfer'
+                      ? 'bg-white shadow-sm text-blue-600'
+                      : 'text-slate-400 hover:text-slate-600',
+                  ]"
+                >
+                  Transfer
+                </button>
               </div>
 
               <!-- Amount Input (Large) -->
@@ -530,11 +550,11 @@
                 <div class="space-y-3">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                    >Archive Source (Wallet)</label
+                    >{{ newRecord.type === 'transfer' ? 'From Wallet' : 'Archive Source (Wallet)' }}</label
                   >
                   <AppDropdown
                     v-model="newRecord.wallet_id"
-                    label="Select Wallet"
+                    :label="newRecord.type === 'transfer' ? 'Select Source Wallet' : 'Select Wallet'"
                     :items="walletDropdownItems"
                     unstyled
                     trigger-class="w-full flex items-center justify-between px-8 py-5 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
@@ -545,12 +565,27 @@
                 <div class="space-y-3">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                    >Taxonomy (Category)</label
+                    >{{ newRecord.type === 'transfer' ? 'Transfer Category' : 'Taxonomy (Category)' }}</label
                   >
                   <AppDropdown
                     v-model="newRecord.category_id"
-                    label="Select Category"
+                    :label="newRecord.type === 'transfer' ? 'Select Transfer Category' : 'Select Category'"
                     :items="recordCategoryDropdownItems"
+                    unstyled
+                    trigger-class="w-full flex items-center justify-between px-8 py-5 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                    menu-class="w-full"
+                  />
+                </div>
+
+                <div v-if="newRecord.type === 'transfer'" class="space-y-3">
+                  <label
+                    class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
+                    >To Wallet</label
+                  >
+                  <AppDropdown
+                    v-model="newRecord.to_wallet_id"
+                    label="Select Destination Wallet"
+                    :items="destinationWalletDropdownItems"
                     unstyled
                     trigger-class="w-full flex items-center justify-between px-8 py-5 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
                     menu-class="w-full"
@@ -872,35 +907,41 @@
                   </div>
                   <div>
                     <p class="text-sm font-medium text-slate-900">
-                      {{ item.note || item.category }}
+                      {{ item.displayNote || item.note || item.category }}
                     </p>
                     <p
                       class="text-[9px] text-slate-400 uppercase tracking-[0.2em] mt-0.5"
                     >
-                      {{ item.category }} • {{ item.wallet }}
+                      {{ item.displayCategory }} • {{ item.wallet }}
                     </p>
+                    <span
+                      v-if="item.isTransfer"
+                      class="mt-1 inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-blue-700"
+                    >
+                      Transfer
+                    </span>
                   </div>
                 </div>
                 <div class="text-right">
                   <p
                     :class="[
                       'text-sm font-semibold tracking-tight',
-                      item.type === 'expense'
+                      item.isTransfer
+                        ? 'text-blue-600'
+                        : item.type === 'expense'
                         ? 'text-rose-500'
                         : 'text-emerald-500',
                     ]"
                   >
-                    {{ item.type === "expense" ? "-" : "+" }}
+                    {{ item.isTransfer ? '' : (item.type === "expense" ? "-" : "+") }}
                     {{
                       item.amount.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                       })
                     }}
                   </p>
-                  <p
-                    class="text-[9px] text-slate-300 uppercase tracking-widest mt-1"
-                  >
-                    Confirmed
+                  <p class="text-[9px] text-slate-300 uppercase tracking-widest mt-1">
+                    {{ item.isTransfer ? 'Transfer' : 'Confirmed' }}
                   </p>
                 </div>
               </div>
@@ -1402,7 +1443,8 @@ import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
-type TransactionType = "income" | "expense";
+type TransactionType = "income" | "expense" | "transfer";
+type CategoryType = "income" | "expense";
 
 type WalletItem = {
   id: string;
@@ -1414,7 +1456,7 @@ type WalletItem = {
 type CategoryItem = {
   id: string;
   name: string;
-  type: TransactionType;
+  type: CategoryType;
 };
 
 type BudgetItem = {
@@ -1434,6 +1476,41 @@ type LedgerItem = {
   wallet: string;
   date: string;
   image_url: string;
+  isTransfer: boolean;
+  displayCategory: string;
+  displayNote: string;
+};
+
+type TransferDirection = "in" | "out";
+
+type TransferNoteMeta = {
+  ref: string;
+  direction: TransferDirection;
+  counterpartyWalletID: string;
+  userNote: string;
+};
+
+const transferNotePrefix = "__transfer__|";
+
+const parseTransferNote = (note: string): TransferNoteMeta | null => {
+  if (!note.startsWith(transferNotePrefix)) {
+    return null;
+  }
+
+  const [prefix, ref, direction, counterpartyWalletID, ...rest] = note.split("|");
+  if (prefix !== "__transfer__") {
+    return null;
+  }
+  if (!ref || (direction !== "in" && direction !== "out") || !counterpartyWalletID) {
+    return null;
+  }
+
+  return {
+    ref,
+    direction,
+    counterpartyWalletID,
+    userNote: rest.join("|").trim(),
+  };
 };
 
 const mobileSidebarOpen = ref(false);
@@ -1443,7 +1520,7 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
-const { listMyWallets, createMyWallet, listMyCategories, createMyCategory, deleteMyCategory, listMyBudgets, createMyBudget, deleteMyBudget, listMyTransactions, createMyTransaction, uploadMyTransactionSlip, getMyTransactionSlip } = useAuthApi();
+const { listMyWallets, createMyWallet, listMyCategories, createMyCategory, deleteMyCategory, listMyBudgets, createMyBudget, deleteMyBudget, listMyTransactions, createMyTransaction, createMyTransferTransaction, uploadMyTransactionSlip, getMyTransactionSlip } = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const loading = ref(false);
 const message = ref("");
@@ -1533,6 +1610,15 @@ const walletDropdownItems = computed(() =>
   })),
 );
 
+const destinationWalletDropdownItems = computed(() =>
+  wallets.value
+    .filter((w) => w.id !== newRecord.wallet_id)
+    .map((w) => ({
+      label: `${w.name} (฿${w.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })})`,
+      value: w.id,
+    })),
+);
+
 const currencyDropdownItems = [
   { label: "THB - Thai Baht", value: "THB" },
   { label: "USD - US Dollar", value: "USD" },
@@ -1602,7 +1688,7 @@ const categories = ref<CategoryItem[]>([]);
 const categoryFilter = ref("all");
 const newCategory = reactive({
   name: "",
-  type: "expense" as TransactionType,
+  type: "expense" as CategoryType,
 });
 
 const filteredCategories = computed(() => {
@@ -1611,9 +1697,11 @@ const filteredCategories = computed(() => {
 });
 
 const recordCategoryDropdownItems = computed(() =>
-  categories.value
-    .filter((cat) => cat.type === newRecord.type)
-    .map((cat) => ({ label: cat.name, value: cat.id })),
+  newRecord.type === "transfer"
+    ? categories.value.map((cat) => ({ label: `${cat.name} (${cat.type})`, value: cat.id }))
+    : categories.value
+        .filter((cat) => cat.type === newRecord.type)
+        .map((cat) => ({ label: cat.name, value: cat.id })),
 );
 
 const getCategoryName = (id: string) => {
@@ -1810,6 +1898,24 @@ const loadTransactions = async () => {
   const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
 
   allTransactions.value = (res.items || []).map((item) => ({
+    ...(() => {
+      const rawNote = item.note || "";
+      const transferMeta = parseTransferNote(rawNote);
+      const isTransfer = transferMeta !== null || rawNote === "Wallet transfer";
+      const counterpartyWalletName = transferMeta
+        ? walletMap.get(transferMeta.counterpartyWalletID) || "Unknown Wallet"
+        : "Unknown Wallet";
+
+      return {
+        isTransfer,
+        displayCategory: isTransfer ? "Transfer" : (item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized"),
+        displayNote: isTransfer
+          ? transferMeta?.userNote
+            ? `Transfer ${transferMeta.direction === "out" ? "to" : "from"} ${counterpartyWalletName} - ${transferMeta.userNote}`
+            : `Transfer ${transferMeta?.direction === "out" ? "to" : transferMeta?.direction === "in" ? "from" : "between"} ${counterpartyWalletName}`
+          : rawNote,
+      };
+    })(),
     id: item.id,
     category: item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized",
     note: item.note || "",
@@ -1833,6 +1939,7 @@ const newRecord = reactive({
   type: "expense" as TransactionType,
   amount: null as number | null,
   wallet_id: "",
+  to_wallet_id: "",
   category_id: "",
   date: new Date().toISOString().split("T")[0],
   note: "",
@@ -1901,8 +2008,23 @@ const onSlipInvalid = (invalidMessage: string) => {
 };
 
 const submitTransaction = async () => {
-  if (!newRecord.amount || !newRecord.wallet_id || !newRecord.category_id)
+  if (!newRecord.amount || !newRecord.wallet_id)
     return;
+
+  if (newRecord.type !== "transfer" && !newRecord.category_id) {
+    message.value = "transaction-category-required";
+    return;
+  }
+
+  if (newRecord.type === "transfer" && !newRecord.to_wallet_id) {
+    message.value = "transaction-transfer-to-wallet-required";
+    return;
+  }
+
+  if (newRecord.type === "transfer" && newRecord.wallet_id === newRecord.to_wallet_id) {
+    message.value = "transaction-transfer-same-wallet";
+    return;
+  }
 
   if (slipUploadLoading.value) {
     message.value = "Slip upload is still in progress. Please wait.";
@@ -1920,7 +2042,7 @@ const submitTransaction = async () => {
   }
 
   if (
-    newRecord.type === "expense" &&
+    (newRecord.type === "expense" || newRecord.type === "transfer") &&
     normalizeTwoDecimalAmount(newRecord.amount) >
       normalizeTwoDecimalAmount(getWalletBalance(newRecord.wallet_id))
   ) {
@@ -1930,15 +2052,26 @@ const submitTransaction = async () => {
 
   loading.value = true;
   try {
-    await createMyTransaction({
-      wallet_id: newRecord.wallet_id,
-      category_id: newRecord.category_id,
-      amount: normalizeTwoDecimalAmount(newRecord.amount),
-      type: newRecord.type,
-      transaction_date: newRecord.date,
-      note: newRecord.note.trim(),
-      image_url: uploadedSlipURL.value || undefined,
-    });
+    if (newRecord.type === "transfer") {
+      await createMyTransferTransaction({
+        from_wallet_id: newRecord.wallet_id,
+        to_wallet_id: newRecord.to_wallet_id,
+        category_id: newRecord.category_id || undefined,
+        amount: normalizeTwoDecimalAmount(newRecord.amount),
+        transaction_date: newRecord.date,
+        note: newRecord.note.trim(),
+      });
+    } else {
+      await createMyTransaction({
+        wallet_id: newRecord.wallet_id,
+        category_id: newRecord.category_id,
+        amount: normalizeTwoDecimalAmount(newRecord.amount),
+        type: newRecord.type,
+        transaction_date: newRecord.date,
+        note: newRecord.note.trim(),
+        image_url: uploadedSlipURL.value || undefined,
+      });
+    }
 
     await Promise.all([
       loadWallets(),
@@ -1949,6 +2082,8 @@ const submitTransaction = async () => {
 
     message.value = "Entry Archived Successfully";
     newRecord.amount = null;
+    newRecord.to_wallet_id = "";
+    newRecord.category_id = "";
     newRecord.note = "";
     clearSlipFile();
 
@@ -1966,7 +2101,7 @@ const submitTransaction = async () => {
 const confirmSubmitTransaction = () => {
   openConfirmModal(
     "Confirm Save",
-    "Save this transaction record?",
+    newRecord.type === "transfer" ? "Transfer between wallets?" : "Save this transaction record?",
     "Save",
     submitTransaction,
   );
@@ -1985,6 +2120,27 @@ const confirmUpdateProfile = () => {
     },
   );
 };
+
+watch(
+  () => newRecord.type,
+  (nextType) => {
+    if (nextType === "transfer") {
+      clearSlipFile();
+      return;
+    }
+
+    newRecord.to_wallet_id = "";
+  },
+);
+
+watch(
+  () => newRecord.wallet_id,
+  (walletID) => {
+    if (newRecord.to_wallet_id && walletID === newRecord.to_wallet_id) {
+      newRecord.to_wallet_id = "";
+    }
+  },
+);
 
 const onCalendarDateChange = (event: Event) => {
   const target = event.target as { value?: string } | null;

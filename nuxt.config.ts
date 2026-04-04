@@ -25,6 +25,9 @@ export default defineNuxtConfig({
         process.env.NUXT_PUBLIC_API_BASE ||
         process.env.NUXT_PUBLIC_API_URL ||
         "http://localhost:8080/api/v1",
+      googleAuthUrl:
+        process.env.NUXT_PUBLIC_GOOGLE_AUTH_URL ||
+        "http://localhost:8080/api/v1/public/auth/google",
       appVersion:
         process.env.NUXT_PUBLIC_APP_VERSION ||
         process.env.APP_VERSION ||

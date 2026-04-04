@@ -51,7 +51,7 @@
             @click="toggleSection('overview')"
             class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
           >
-            Overview
+            {{ t("navOverview") }}
             <span
               class="text-[9px] transition-transform duration-300"
               :class="{ 'rotate-180': sections.overview }"
@@ -71,13 +71,13 @@
               @click="goTo('dashboard')"
               :class="navClass('dashboard')"
             >
-              Dashboard
+              {{ t("navDashboard") }}
             </button>
             <button
               @click="goTo('history')"
               :class="navClass('history')"
             >
-              Transaction Ledger
+              {{ t("navTransactionLedger") }}
             </button>
           </div>
         </div>
@@ -88,7 +88,7 @@
             @click="toggleSection('management')"
             class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
           >
-            Management
+            {{ t("navManagement") }}
             <span
               class="text-[9px] transition-transform duration-300"
               :class="{ 'rotate-180': sections.management }"
@@ -108,19 +108,19 @@
               @click="goTo('wallets')"
               :class="navClass('wallets')"
             >
-              Wallets
+              {{ t("navWallets") }}
             </button>
             <button
               @click="goTo('categories')"
               :class="navClass('categories')"
             >
-              Categories
+              {{ t("navCategories") }}
             </button>
             <button
               @click="goTo('budgets')"
               :class="navClass('budgets')"
             >
-              Budgets
+              {{ t("navBudgets") }}
             </button>
           </div>
         </div>
@@ -131,7 +131,7 @@
             @click="toggleSection('actions')"
             class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
           >
-            Entry
+            {{ t("navEntry") }}
             <span
               class="text-[9px] transition-transform duration-300"
               :class="{ 'rotate-180': sections.actions }"
@@ -148,7 +148,7 @@
             ]"
           >
             <button @click="goTo('record')" :class="navClass('record')">
-              New Transaction
+              {{ t("navNewTransaction") }}
             </button>
           </div>
         </div>
@@ -159,7 +159,7 @@
             @click="toggleSection('system')"
             class="w-full flex justify-between items-center px-4 py-3 text-[11px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-900 transition-colors"
           >
-            System
+            {{ t("navSystem") }}
             <span
               class="text-[9px] transition-transform duration-300"
               :class="{ 'rotate-180': sections.system }"
@@ -179,13 +179,13 @@
               @click="goTo('profile')"
               :class="navClass('profile')"
             >
-              Account Profile
+              {{ t("navAccountProfile") }}
             </button>
             <button
               @click="goTo('settings')"
               :class="navClass('settings')"
             >
-              Settings
+              {{ t("navSettings") }}
             </button>
           </div>
         </div>
@@ -194,7 +194,7 @@
       <!-- Footer User Info -->
       <div class="border-t border-slate-100 bg-slate-900 px-6 py-5 text-white">
         <p class="text-[9px] uppercase tracking-[0.2em] text-slate-300 mb-1">
-          Authenticated as
+          {{ t("authenticatedAs") }}
         </p>
         <p class="text-sm font-semibold tracking-tight">
           {{ userDisplayName }}
@@ -203,14 +203,14 @@
           @click="logout"
           class="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-white/20 transition"
         >
-          Logout
+          {{ t("logout") }}
         </button>
       </div>
     </aside>
 
     <!-- Main Content Area -->
     <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
-      <AppLoading v-if="settingsLoading" overlay label="Loading data..." />
+      <AppLoading v-if="settingsLoading" overlay :label="t('loadingData')" />
 
       <!-- Dynamic Header Based on currentPath -->
       <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
@@ -220,7 +220,7 @@
             @click="mobileSidebarOpen = true"
           >
             <span class="text-sm">☰</span>
-            Menu
+            {{ t("menu") }}
           </button>
           <p
             class="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.3em] mb-2"
@@ -234,7 +234,7 @@
         <div class="flex w-full items-center justify-between sm:w-auto sm:justify-end sm:space-x-6">
           <div class="text-right">
             <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">
-              Total Net Worth
+              {{ t("totalNetWorth") }}
             </p>
             <p class="text-2xl font-medium tracking-tight">
               ฿
@@ -250,7 +250,7 @@
             @click="goTo('record')"
             class="bg-slate-900 text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
           >
-            Quick Entry
+            {{ t("quickEntry") }}
           </button>
         </div>
       </header>
@@ -1383,17 +1383,17 @@
               <h4
                 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-7"
               >
-                Regional Settings
+                {{ t("regionalSettings") }}
               </h4>
               <div class="space-y-8">
                 <div class="space-y-3">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                    >Primary Currency</label
+                    >{{ t("primaryCurrency") }}</label
                   >
                   <AppDropdown
                     v-model="systemSettings.currency"
-                    label="Select Currency"
+                    :label="t('selectCurrency')"
                     :items="systemCurrencyDropdownItems"
                     unstyled
                     trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
@@ -1403,11 +1403,11 @@
                 <div class="space-y-3">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                    >System Language</label
+                    >{{ t("systemLanguage") }}</label
                   >
                   <AppDropdown
                     v-model="systemSettings.language"
-                    label="Select Language"
+                    :label="t('selectLanguage')"
                     :items="systemLanguageDropdownItems"
                     unstyled
                     trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
@@ -1419,7 +1419,7 @@
                   :disabled="settingsSaving || settingsLoading"
                   class="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] shadow-xl shadow-slate-200 hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {{ settingsSaving ? "Saving..." : "Save Settings" }}
+                  {{ settingsSaving ? t("saving") : t("saveSettings") }}
                 </button>
               </div>
             </div>
@@ -1431,7 +1431,7 @@
               <h4
                 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-7"
               >
-                Notification Archive
+                {{ t("notificationArchive") }}
               </h4>
               <div class="space-y-6">
                 <div
@@ -1443,12 +1443,12 @@
                     <p
                       class="text-sm font-medium text-slate-900 capitalize tracking-tight"
                     >
-                      {{ key }} Alerts
+                      {{ notificationTitle(String(key)) }}
                     </p>
                     <p
                       class="text-[9px] text-slate-400 uppercase tracking-widest"
                     >
-                      Enable system {{ key }} push
+                      {{ notificationDescription(String(key)) }}
                     </p>
                   </div>
                   <button
@@ -1471,6 +1471,78 @@
                   </button>
                 </div>
               </div>
+
+              <div class="mt-8 border-t border-slate-100 pt-6">
+                <div class="mb-4 flex items-center justify-between">
+                  <div>
+                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                      {{ t("liveNotifications") }}
+                    </p>
+                    <p class="mt-1 text-[9px] uppercase tracking-widest text-slate-400">
+                      {{ t("notificationsUnreadCount") }}: {{ unreadNotificationsCount }}
+                    </p>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button
+                      @click="markAllNotificationsRead"
+                      :disabled="notificationsMutating || notificationsLoading || !systemNotifications.length"
+                      class="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {{ t("markAllRead") }}
+                    </button>
+                    <button
+                      @click="confirmClearNotifications"
+                      :disabled="notificationsMutating || notificationsLoading || !systemNotifications.length"
+                      class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-[9px] font-bold uppercase tracking-widest text-rose-600 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {{ t("clearNotifications") }}
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="notificationsLoading" class="mb-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  {{ t("loadingData") }}
+                </div>
+
+                <div v-if="systemNotifications.length" class="space-y-3">
+                  <div
+                    v-for="alert in systemNotifications"
+                    :key="alert.id"
+                    class="rounded-2xl border px-4 py-3 transition"
+                    :class="[alertCardClass(alert.level), alert.isRead ? 'opacity-70' : 'opacity-100']"
+                  >
+                    <div class="flex items-start justify-between gap-4">
+                      <div>
+                        <p class="text-xs font-semibold tracking-tight text-slate-900">
+                          {{ alert.title }}
+                        </p>
+                        <p class="mt-1 text-[10px] uppercase tracking-widest text-slate-500">
+                          {{ alert.description }}
+                        </p>
+                      </div>
+                      <span class="shrink-0 text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        {{ alertTag(alert.type) }}
+                      </span>
+                    </div>
+                    <div class="mt-3 flex justify-end">
+                      <button
+                        @click="toggleNotificationRead(alert)"
+                        :disabled="notificationsMutating"
+                        class="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {{ alert.isRead ? t("markUnread") : t("markRead") }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  v-else
+                  class="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-5 text-[10px] font-bold uppercase tracking-widest text-slate-400"
+                >
+                  {{ t("noActiveNotifications") }}
+                </div>
+              </div>
             </div>
 
             <!-- Data Management -->
@@ -1480,24 +1552,23 @@
               <h4
                 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-7"
               >
-                Data Management
+                {{ t("dataManagement") }}
               </h4>
               <p class="text-xs text-slate-400 mb-8 leading-relaxed">
-                Securely export your financial archive for external analysis or
-                backup purposes.
+                {{ t("dataManagementDescription") }}
               </p>
               <div class="grid grid-cols-2 gap-4">
                 <button
                   @click="openDevelopmentModal('CSV')"
                   class="py-4 border border-slate-100 rounded-2xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
                 >
-                  Export CSV
+                  {{ t("exportCsv") }}
                 </button>
                 <button
                   @click="openDevelopmentModal('JSON')"
                   class="py-4 border border-slate-100 rounded-2xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
                 >
-                  Export JSON
+                  {{ t("exportJson") }}
                 </button>
               </div>
             </div>
@@ -1509,7 +1580,7 @@
               <h4
                 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-8"
               >
-                System Manifest
+                {{ t("systemManifest") }}
               </h4>
               <div class="space-y-6">
                 <div
@@ -1518,7 +1589,7 @@
                   <p
                     class="text-[9px] text-slate-400 uppercase tracking-widest"
                   >
-                    Version
+                    {{ t("version") }}
                   </p>
                   <p class="text-xs font-medium tracking-widest">{{ systemManifest.version }}</p>
                 </div>
@@ -1528,7 +1599,7 @@
                   <p
                     class="text-[9px] text-slate-400 uppercase tracking-widest"
                   >
-                    Encrypted Status
+                    {{ t("encryptedStatus") }}
                   </p>
                   <p
                     class="text-xs font-medium tracking-widest"
@@ -1547,7 +1618,7 @@
                   <p
                     class="text-[8px] text-slate-500 uppercase tracking-[0.3em]"
                   >
-                    Balance Finance Archive &copy; {{ systemManifest.year }}
+                    {{ t("balanceArchive") }} &copy; {{ systemManifest.year }}
                   </p>
                 </div>
               </div>
@@ -1653,6 +1724,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue";
+import { useRuntimeConfig } from "nuxt/app";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
@@ -1668,11 +1740,14 @@ const loading = ref(false);
 const settingsLoading = ref(false);
 const settingsSaving = ref(false);
 const notificationsSaving = ref(false);
+const notificationsLoading = ref(false);
+const notificationsMutating = ref(false);
 const message = ref("");
 const runtimeConfig = useRuntimeConfig();
 const runtimeAppVersion = String(runtimeConfig.public.appVersion || "").trim() || "0.0.0";
 const authApi = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
+const LOCALE_KEY = "balance_app_locale";
 const confirmModalOpen = ref(false);
 const confirmTitle = ref("Confirm Action");
 const confirmDescription = ref("");
@@ -1732,6 +1807,205 @@ const systemSettings = reactive({
   },
 });
 
+const uiLocale = computed<"en" | "th">(() => {
+  return systemSettings.language === "TH" ? "th" : "en";
+});
+
+const localeText = {
+  en: {
+    navOverview: "Overview",
+    navDashboard: "Dashboard",
+    navTransactionLedger: "Transaction Ledger",
+    navManagement: "Management",
+    navWallets: "Wallets",
+    navCategories: "Categories",
+    navBudgets: "Budgets",
+    navEntry: "Entry",
+    navNewTransaction: "New Transaction",
+    navSystem: "System",
+    navAccountProfile: "Account Profile",
+    navSettings: "Settings",
+    authenticatedAs: "Authenticated as",
+    logout: "Logout",
+    loadingData: "Loading data...",
+    menu: "Menu",
+    totalNetWorth: "Total Net Worth",
+    quickEntry: "Quick Entry",
+    regionalSettings: "Regional Settings",
+    primaryCurrency: "Primary Currency",
+    selectCurrency: "Select Currency",
+    systemLanguage: "System Language",
+    selectLanguage: "Select Language",
+    saving: "Saving...",
+    saveSettings: "Save Settings",
+    notificationArchive: "Notification Archive",
+    budgetAlerts: "Budget Alerts",
+    securityAlerts: "Security Alerts",
+    weeklyAlerts: "Weekly Alerts",
+    budgetDescription: "Enable system budget push",
+    securityDescription: "Enable system security push",
+    weeklyDescription: "Enable system weekly push",
+    dataManagement: "Data Management",
+    dataManagementDescription: "Securely export your financial archive for external analysis or backup purposes.",
+    exportCsv: "Export CSV",
+    exportJson: "Export JSON",
+    systemManifest: "System Manifest",
+    version: "Version",
+    encryptedStatus: "Encrypted Status",
+    balanceArchive: "Balance Finance Archive",
+    pageFinancialOverview: "Financial Overview",
+    pageTransactionLedger: "Transaction Ledger",
+    pageAssetManagement: "Asset Management",
+    pageTaxonomySettings: "Taxonomy Settings",
+    pageBudgetAllocation: "Budget Allocation",
+    pageExecuteEntry: "Execute Entry",
+    pageUserIdentity: "User Identity",
+    pageSystemPreferences: "System Preferences",
+    pageArchive: "Archive",
+    confirmUpdate: "Confirm Update",
+    saveProfileChanges: "Save profile changes?",
+    update: "Update",
+    profileUpdatedSuccessfully: "Profile Updated Successfully",
+    saveSystemSettingsQuestion: "Save system settings?",
+    save: "Save",
+    settingsSavedSuccessfully: "Settings Saved Successfully",
+    liveNotifications: "Live Notifications",
+    noActiveNotifications: "No active notifications",
+    alertTagBudget: "Budget",
+    alertTagSecurity: "Security",
+    alertTagWeekly: "Weekly",
+    budgetWarningTitle: "Budget usage is high",
+    budgetCriticalTitle: "Budget exceeded",
+    budgetAlertDescription: "{category}: {used}% used",
+    securityAlertTitle: "Unusual transaction detected",
+    securityAlertDescription: "High expense detected: ฿{amount}",
+    weeklyAlertTitle: "Weekly financial summary",
+    weeklyAlertDescription: "Income ฿{income} | Expense ฿{expense}",
+    notificationsUnreadCount: "Unread",
+    markAllRead: "Mark All Read",
+    clearNotifications: "Clear",
+    markRead: "Mark Read",
+    markUnread: "Mark Unread",
+    clearNotificationsQuestion: "Clear all notifications?",
+  },
+  th: {
+    navOverview: "ภาพรวม",
+    navDashboard: "แดชบอร์ด",
+    navTransactionLedger: "รายการธุรกรรม",
+    navManagement: "จัดการ",
+    navWallets: "กระเป๋าเงิน",
+    navCategories: "หมวดหมู่",
+    navBudgets: "งบประมาณ",
+    navEntry: "บันทึกรายการ",
+    navNewTransaction: "เพิ่มธุรกรรม",
+    navSystem: "ระบบ",
+    navAccountProfile: "โปรไฟล์บัญชี",
+    navSettings: "ตั้งค่า",
+    authenticatedAs: "เข้าสู่ระบบเป็น",
+    logout: "ออกจากระบบ",
+    loadingData: "กำลังโหลดข้อมูล...",
+    menu: "เมนู",
+    totalNetWorth: "มูลค่าสุทธิรวม",
+    quickEntry: "บันทึกด่วน",
+    regionalSettings: "การตั้งค่าภูมิภาค",
+    primaryCurrency: "สกุลเงินหลัก",
+    selectCurrency: "เลือกสกุลเงิน",
+    systemLanguage: "ภาษาระบบ",
+    selectLanguage: "เลือกภาษา",
+    saving: "กำลังบันทึก...",
+    saveSettings: "บันทึกการตั้งค่า",
+    notificationArchive: "การแจ้งเตือน",
+    budgetAlerts: "แจ้งเตือนงบประมาณ",
+    securityAlerts: "แจ้งเตือนความปลอดภัย",
+    weeklyAlerts: "แจ้งเตือนรายสัปดาห์",
+    budgetDescription: "เปิดการแจ้งเตือนงบประมาณของระบบ",
+    securityDescription: "เปิดการแจ้งเตือนความปลอดภัยของระบบ",
+    weeklyDescription: "เปิดการแจ้งเตือนรายสัปดาห์ของระบบ",
+    dataManagement: "จัดการข้อมูล",
+    dataManagementDescription: "ส่งออกข้อมูลการเงินของคุณอย่างปลอดภัยเพื่อการวิเคราะห์ภายนอกหรือการสำรองข้อมูล",
+    exportCsv: "ส่งออก CSV",
+    exportJson: "ส่งออก JSON",
+    systemManifest: "ข้อมูลระบบ",
+    version: "เวอร์ชัน",
+    encryptedStatus: "สถานะการเข้ารหัส",
+    balanceArchive: "ระบบบันทึกการเงิน Balance",
+    pageFinancialOverview: "ภาพรวมการเงิน",
+    pageTransactionLedger: "รายการธุรกรรม",
+    pageAssetManagement: "จัดการสินทรัพย์",
+    pageTaxonomySettings: "ตั้งค่าหมวดหมู่",
+    pageBudgetAllocation: "จัดสรรงบประมาณ",
+    pageExecuteEntry: "บันทึกรายการ",
+    pageUserIdentity: "ข้อมูลผู้ใช้",
+    pageSystemPreferences: "การตั้งค่าระบบ",
+    pageArchive: "คลังข้อมูล",
+    confirmUpdate: "ยืนยันการอัปเดต",
+    saveProfileChanges: "บันทึกการเปลี่ยนแปลงโปรไฟล์หรือไม่?",
+    update: "อัปเดต",
+    profileUpdatedSuccessfully: "อัปเดตโปรไฟล์สำเร็จ",
+    saveSystemSettingsQuestion: "บันทึกการตั้งค่าระบบหรือไม่?",
+    save: "บันทึก",
+    settingsSavedSuccessfully: "บันทึกการตั้งค่าสำเร็จ",
+    liveNotifications: "การแจ้งเตือนล่าสุด",
+    noActiveNotifications: "ไม่มีการแจ้งเตือนที่ต้องดำเนินการ",
+    alertTagBudget: "งบประมาณ",
+    alertTagSecurity: "ความปลอดภัย",
+    alertTagWeekly: "รายสัปดาห์",
+    budgetWarningTitle: "การใช้งบประมาณสูง",
+    budgetCriticalTitle: "งบประมาณเกินกำหนด",
+    budgetAlertDescription: "{category}: ใช้ไปแล้ว {used}%",
+    securityAlertTitle: "ตรวจพบรายการผิดปกติ",
+    securityAlertDescription: "พบรายจ่ายมูลค่าสูง: ฿{amount}",
+    weeklyAlertTitle: "สรุปการเงินประจำสัปดาห์",
+    weeklyAlertDescription: "รายรับ ฿{income} | รายจ่าย ฿{expense}",
+    notificationsUnreadCount: "ยังไม่อ่าน",
+    markAllRead: "อ่านทั้งหมด",
+    clearNotifications: "ล้างทั้งหมด",
+    markRead: "ทำว่าอ่านแล้ว",
+    markUnread: "ทำว่ายังไม่อ่าน",
+    clearNotificationsQuestion: "ล้างการแจ้งเตือนทั้งหมดหรือไม่?",
+  },
+} as const;
+
+type LocaleTextKey = keyof typeof localeText.en;
+
+const t = (key: LocaleTextKey): string => {
+  return localeText[uiLocale.value][key];
+};
+
+const notificationTitle = (key: string): string => {
+  if (key === "budget") {
+    return t("budgetAlerts");
+  }
+  if (key === "security") {
+    return t("securityAlerts");
+  }
+  return t("weeklyAlerts");
+};
+
+const notificationDescription = (key: string): string => {
+  if (key === "budget") {
+    return t("budgetDescription");
+  }
+  if (key === "security") {
+    return t("securityDescription");
+  }
+  return t("weeklyDescription");
+};
+
+type SystemNotificationType = "budget" | "security" | "weekly";
+type SystemNotificationLevel = "info" | "warning" | "critical";
+
+type SystemNotificationItem = {
+  id: string;
+  type: SystemNotificationType;
+  level: SystemNotificationLevel;
+  title: string;
+  description: string;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+};
+
 const systemManifest = reactive({
   version: runtimeAppVersion,
   encryptedStatus: "-",
@@ -1782,6 +2056,19 @@ const systemLanguageDropdownItems = [
   { label: "ไทย (Thai)", value: "TH" },
 ];
 
+const syncAppLocaleByPreferredLanguage = (preferredLanguage: string) => {
+  const locale = preferredLanguage === "TH" ? "th" : "en";
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem(LOCALE_KEY, locale);
+    window.dispatchEvent(new CustomEvent("app-locale-changed", { detail: locale }));
+  }
+
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = locale;
+  }
+};
+
 const toggleNotification = async (key: string) => {
   if (notificationsSaving.value || settingsLoading.value) {
     return;
@@ -1809,6 +2096,7 @@ const toggleNotification = async (key: string) => {
     systemSettings.notifications.budget = !!s.notify_budget;
     systemSettings.notifications.security = !!s.notify_security;
     systemSettings.notifications.weekly = !!s.notify_weekly;
+    await loadNotifications();
   } catch (error) {
     systemSettings.notifications[key] = previous;
     message.value = error instanceof Error ? error.message : "member-settings-update-failed";
@@ -1827,6 +2115,7 @@ const loadMySettings = async () => {
     const s = res.data;
     systemSettings.currency = s.preferred_currency || "THB";
     systemSettings.language = s.preferred_language || "EN";
+    syncAppLocaleByPreferredLanguage(systemSettings.language);
     systemSettings.notifications.budget = !!s.notify_budget;
     systemSettings.notifications.security = !!s.notify_security;
     systemSettings.notifications.weekly = !!s.notify_weekly;
@@ -1858,9 +2147,9 @@ const confirmSaveSettings = () => {
   }
 
   openConfirmModal(
-    "Confirm Update",
-    "Save system settings?",
-    "Save",
+      t("confirmUpdate"),
+      t("saveSystemSettingsQuestion"),
+      t("save"),
     async () => {
       settingsSaving.value = true;
       try {
@@ -1872,11 +2161,13 @@ const confirmSaveSettings = () => {
         const s = res.data;
         systemSettings.currency = s.preferred_currency || "THB";
         systemSettings.language = s.preferred_language || "EN";
+        syncAppLocaleByPreferredLanguage(systemSettings.language);
         systemSettings.notifications.budget = !!s.notify_budget;
         systemSettings.notifications.security = !!s.notify_security;
         systemSettings.notifications.weekly = !!s.notify_weekly;
+        await loadNotifications();
 
-        message.value = "Settings Saved Successfully";
+          message.value = t("settingsSavedSuccessfully");
       } catch (error) {
         message.value = error instanceof Error ? error.message : "member-settings-update-failed";
       } finally {
@@ -1893,6 +2184,7 @@ const confirmSaveSettings = () => {
 onMounted(() => {
   void loadMySettings();
   void loadSystemManifest();
+  void loadNotifications();
   void refreshTotalNetWorth();
 });
 
@@ -2086,6 +2378,132 @@ const allTransactions = ref([
   },
 ]);
 
+const systemNotifications = ref<SystemNotificationItem[]>([]);
+
+const unreadNotificationsCount = computed(() => {
+  return systemNotifications.value.filter((item) => !item.isRead).length;
+});
+
+const loadNotifications = async () => {
+  notificationsLoading.value = true;
+  try {
+    const res = await authApi.listMyNotifications({ includeRead: true, limit: 50 });
+    systemNotifications.value = (res.data || []).map((item) => ({
+      id: String(item.id),
+      type: item.type,
+      level: item.level,
+      title: item.title,
+      description: item.description,
+      isRead: !!item.is_read,
+      readAt: item.read_at || null,
+      createdAt: item.created_at,
+    }));
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "member-notification-list-failed";
+    setTimeout(() => {
+      message.value = "";
+    }, 1800);
+  } finally {
+    notificationsLoading.value = false;
+  }
+};
+
+const toggleNotificationRead = async (item: SystemNotificationItem) => {
+  if (notificationsMutating.value) {
+    return;
+  }
+
+  notificationsMutating.value = true;
+  const nextRead = !item.isRead;
+  try {
+    const res = await authApi.setMyNotificationRead(item.id, nextRead);
+    const updated = res.data;
+    systemNotifications.value = systemNotifications.value.map((row) =>
+      row.id === item.id
+        ? {
+            ...row,
+            isRead: !!updated.is_read,
+            readAt: updated.read_at || null,
+          }
+        : row,
+    );
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "member-notification-update-failed";
+    setTimeout(() => {
+      message.value = "";
+    }, 1800);
+  } finally {
+    notificationsMutating.value = false;
+  }
+};
+
+const markAllNotificationsRead = async () => {
+  if (notificationsMutating.value || !systemNotifications.value.length) {
+    return;
+  }
+
+  notificationsMutating.value = true;
+  try {
+    await authApi.markAllMyNotificationsRead();
+    await loadNotifications();
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "member-notification-update-failed";
+    setTimeout(() => {
+      message.value = "";
+    }, 1800);
+  } finally {
+    notificationsMutating.value = false;
+  }
+};
+
+const clearNotifications = async () => {
+  if (notificationsMutating.value) {
+    return;
+  }
+
+  notificationsMutating.value = true;
+  try {
+    await authApi.clearMyNotifications();
+    systemNotifications.value = [];
+  } catch (error) {
+    message.value = error instanceof Error ? error.message : "member-notification-clear-failed";
+    setTimeout(() => {
+      message.value = "";
+    }, 1800);
+  } finally {
+    notificationsMutating.value = false;
+  }
+};
+
+const confirmClearNotifications = () => {
+  openConfirmModal(
+    t("confirmUpdate"),
+    t("clearNotificationsQuestion"),
+    t("clearNotifications"),
+    clearNotifications,
+  );
+};
+
+const alertTag = (type: SystemNotificationType): string => {
+  if (type === "budget") {
+    return t("alertTagBudget");
+  }
+  if (type === "security") {
+    return t("alertTagSecurity");
+  }
+  return t("alertTagWeekly");
+};
+
+const alertCardClass = (level: SystemNotificationLevel): string => {
+  if (level === "critical") {
+    return "border-rose-200 bg-rose-50/80";
+  }
+  if (level === "warning") {
+    return "border-amber-200 bg-amber-50/80";
+  }
+  return "border-sky-200 bg-sky-50/80";
+};
+
 const recentTransactionsSnapshot = computed(() =>
   allTransactions.value.slice(0, 3),
 );
@@ -2168,11 +2586,11 @@ const confirmSubmitTransaction = () => {
 
 const confirmUpdateProfile = () => {
   openConfirmModal(
-    "Confirm Update",
-    "Save profile changes?",
-    "Update",
+    t("confirmUpdate"),
+    t("saveProfileChanges"),
+    t("update"),
     () => {
-      message.value = "Profile Updated Successfully";
+      message.value = t("profileUpdatedSuccessfully");
       setTimeout(() => {
         message.value = "";
       }, 1800);
@@ -2216,23 +2634,23 @@ const activeBudgets = computed(() => {
 const pageTitle = computed(() => {
   switch (currentPath.value) {
     case "dashboard":
-      return "Financial Overview";
+      return t("pageFinancialOverview");
     case "history":
-      return "Transaction Ledger";
+      return t("pageTransactionLedger");
     case "wallets":
-      return "Asset Management";
+      return t("pageAssetManagement");
     case "categories":
-      return "Taxonomy Settings";
+      return t("pageTaxonomySettings");
     case "budgets":
-      return "Budget Allocation";
+      return t("pageBudgetAllocation");
     case "record":
-      return "Execute Entry";
+      return t("pageExecuteEntry");
     case "profile":
-      return "User Identity";
+      return t("pageUserIdentity");
     case "settings":
-      return "System Preferences";
+      return t("pageSystemPreferences");
     default:
-      return "Archive";
+      return t("pageArchive");
   }
 });
 
