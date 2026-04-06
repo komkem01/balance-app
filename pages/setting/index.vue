@@ -1756,8 +1756,14 @@ const developmentModalOpen = ref(false);
 const developmentModalDescription = ref("This feature is under development.");
 let pendingConfirmAction: null | (() => void | Promise<void>) = null;
 
-const openDevelopmentModal = (format: "CSV" | "JSON") => {
-  developmentModalDescription.value = `Export ${format} is currently under development.`;
+const openDevelopmentModal = (type: "CSV" | "JSON" | "LANGUAGE") => {
+  if (type === "LANGUAGE") {
+    developmentModalDescription.value = t("languageSwitchDeveloping");
+    developmentModalOpen.value = true;
+    return;
+  }
+
+  developmentModalDescription.value = `Export ${type} is currently under development.`;
   developmentModalOpen.value = true;
 };
 
@@ -1887,6 +1893,7 @@ const localeText = {
     markRead: "Mark Read",
     markUnread: "Mark Unread",
     clearNotificationsQuestion: "Clear all notifications?",
+    languageSwitchDeveloping: "System language switching is currently under development.",
   },
   th: {
     navOverview: "ภาพรวม",
@@ -1963,6 +1970,7 @@ const localeText = {
     markRead: "ทำว่าอ่านแล้ว",
     markUnread: "ทำว่ายังไม่อ่าน",
     clearNotificationsQuestion: "ล้างการแจ้งเตือนทั้งหมดหรือไม่?",
+    languageSwitchDeveloping: "การสลับภาษาระบบอยู่ระหว่างการพัฒนา",
   },
 } as const;
 
@@ -2180,6 +2188,26 @@ const confirmSaveSettings = () => {
     },
   );
 };
+
+const languageSelectionGuard = ref(false);
+
+watch(
+  () => systemSettings.language,
+  (next, prev) => {
+    if (languageSelectionGuard.value) {
+      languageSelectionGuard.value = false;
+      return;
+    }
+
+    if (!prev || next === prev || settingsLoading.value || settingsSaving.value) {
+      return;
+    }
+
+    languageSelectionGuard.value = true;
+    systemSettings.language = prev;
+    openDevelopmentModal("LANGUAGE");
+  },
+);
 
 onMounted(() => {
   void loadMySettings();
