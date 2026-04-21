@@ -477,8 +477,6 @@
               </div>
             </div>
 
-            <p v-if="transferError" class="mb-4 text-[10px] font-bold text-rose-500 uppercase tracking-widest">{{ transferError }}</p>
-
             <form @submit.prevent="requestTransferConfirm" class="space-y-5">
               <!-- Destination Wallet -->
               <div class="space-y-2">
@@ -503,11 +501,9 @@
                   v-model.number="transferForm.amount"
                   type="number"
                   min="0.01"
-                  :max="availableToDraw(transferringLoan)"
                   step="0.01"
                   placeholder="0.00"
                   class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
-                  required
                 />
                 <p class="text-[9px] text-slate-400 ml-1">Max: ฿ {{ availableToDraw(transferringLoan).toLocaleString() }}</p>
               </div>
@@ -707,6 +703,14 @@
       @confirm="confirmLogout"
       @cancel="cancelLogout"
     />
+
+    <div
+      v-if="toastMessage"
+      class="fixed top-6 right-6 z-[70] rounded-2xl border bg-white px-6 py-4 text-[10px] font-bold uppercase tracking-widest shadow-2xl"
+      :class="toastType === 'error' ? 'border-rose-200 text-rose-600' : 'border-emerald-200 text-emerald-600'"
+    >
+      {{ toastMessage }}
+    </div>
   </div>
 </template>
 
@@ -983,12 +987,28 @@ const removeLoan = async (id: string) => {
 const transferringLoan = ref<LoanItem | null>(null);
 const transferSaving = ref(false);
 const transferConfirmOpen = ref(false);
-const transferError = ref("");
+const toastMessage = ref("");
+const toastType = ref<"error" | "success">("error");
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
 const transferForm = reactive({
   walletId: "",
   amount: 0,
   note: "",
 });
+
+const showToast = (message: string, type: "error" | "success" = "error") => {
+  toastType.value = type;
+  toastMessage.value = message;
+
+  if (toastTimer) {
+    clearTimeout(toastTimer);
+  }
+
+  toastTimer = setTimeout(() => {
+    toastMessage.value = "";
+    toastTimer = null;
+  }, 2200);
+};
 
 const transferTargetWallet = computed(() => {
   return wallets.value.find((wallet) => wallet.id === transferForm.walletId) ?? null;
@@ -1013,13 +1033,11 @@ const openTransfer = (loan: LoanItem) => {
   transferForm.walletId = "";
   transferForm.amount = 0;
   transferForm.note = "";
-  transferError.value = "";
 };
 
 const closeTransfer = () => {
   transferringLoan.value = null;
   transferConfirmOpen.value = false;
-  transferError.value = "";
 };
 
 const requestTransferConfirm = () => {
@@ -1030,21 +1048,21 @@ const requestTransferConfirm = () => {
   const maxDraw = availableToDraw(loan);
 
   if (drawAmount <= 0) {
-    transferError.value = "Amount must be greater than 0.";
+    showToast("Amount must be greater than 0.");
     return;
   }
   if (drawAmount > maxDraw) {
-    transferError.value = `Amount exceeds available credit of ฿${maxDraw.toLocaleString()}.`;
+    showToast(`Amount exceeds available credit of ฿${maxDraw.toLocaleString()}.`);
     return;
   }
   if (!transferForm.walletId) {
-    transferError.value = "Please select a destination wallet.";
+    showToast("Please select a destination wallet.");
     return;
   }
 
   const targetWallet = wallets.value.find((w) => w.id === transferForm.walletId);
   if (!targetWallet) {
-    transferError.value = "Wallet not found.";
+    showToast("Wallet not found.");
     return;
   }
 
@@ -1059,14 +1077,13 @@ const executeTransfer = async () => {
   const targetWallet = wallets.value.find((w) => w.id === transferForm.walletId);
 
   if (!targetWallet) {
-    transferError.value = "Wallet not found.";
+    showToast("Wallet not found.");
     transferConfirmOpen.value = false;
     return;
   }
 
   transferSaving.value = true;
   transferConfirmOpen.value = false;
-  transferError.value = "";
 
   try {
     // Update wallet balance via API
@@ -1094,8 +1111,9 @@ const executeTransfer = async () => {
     }
 
     closeTransfer();
+    showToast("Transfer completed.", "success");
   } catch {
-    transferError.value = "Transfer failed. Please try again.";
+    showToast("Transfer failed. Please try again.");
   } finally {
     transferSaving.value = false;
   }
