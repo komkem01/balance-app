@@ -191,12 +191,14 @@ type UpdateWalletRequest = {
 };
 
 type CategoryType = "income" | "expense";
+type CategoryPurpose = "loan_repayment";
 
 type CategoryItemResponse = {
   id: string;
   member_id: string | null;
   name: string;
   type: CategoryType;
+  purpose?: CategoryPurpose | null;
   icon_name: string;
   color_code: string;
   created_at: string;
@@ -206,6 +208,7 @@ type CategoryItemResponse = {
 type CreateCategoryRequest = {
   name: string;
   type: CategoryType;
+  purpose?: CategoryPurpose;
   icon_name?: string;
   color_code?: string;
 };
@@ -213,12 +216,56 @@ type CreateCategoryRequest = {
 type UpdateCategoryRequest = {
   name?: string;
   type?: CategoryType;
+  purpose?: CategoryPurpose;
   icon_name?: string;
   color_code?: string;
 };
 
 type BudgetPeriod = "daily" | "weekly" | "monthly";
 type TransactionType = "income" | "expense";
+
+// ─── Loan Types ───────────────────────────────────────────────────────────────
+type LoanItemResponse = {
+  id: string;
+  member_id: string | null;
+  name: string;
+  lender: string;
+  total_amount: number;
+  remaining_balance: number;
+  monthly_payment: number;
+  interest_rate: number;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type LoanListResponse = {
+  items: LoanItemResponse[];
+  paginate: { page: number; size: number; total: number };
+};
+
+type CreateLoanRequest = {
+  name: string;
+  lender?: string;
+  total_amount: number;
+  remaining_balance: number;
+  monthly_payment?: number;
+  interest_rate?: number;
+  start_date?: string;
+  end_date?: string;
+};
+
+type UpdateLoanRequest = {
+  name?: string;
+  lender?: string;
+  total_amount?: number;
+  remaining_balance?: number;
+  monthly_payment?: number;
+  interest_rate?: number;
+  start_date?: string;
+  end_date?: string;
+};
 
 type BudgetItemResponse = {
   id: string;
@@ -1152,6 +1199,50 @@ export const useAuthApi = () => {
     });
   };
 
+  // ─── Loans ────────────────────────────────────────────────────────────────────
+  const listMyLoans = async (params?: { page?: number; size?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set("page", String(params.page));
+    if (params?.size) q.set("size", String(params.size));
+
+    const res = await requestWithAuth<LoanItemResponse[] | LoanListResponse>(`/balances/loans?${q.toString()}`, {
+      method: "GET",
+    });
+
+    const data = res.data;
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        paginate: (res as unknown as LoanListResponse).paginate,
+      };
+    }
+
+    return {
+      items: data?.items || [],
+      paginate: data?.paginate || (res as unknown as LoanListResponse).paginate,
+    };
+  };
+
+  const createMyLoan = async (body: CreateLoanRequest) => {
+    return await requestWithAuth<LoanItemResponse>("/balances/loans", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const updateMyLoan = async (loanID: string, body: UpdateLoanRequest) => {
+    return await requestWithAuth<LoanItemResponse>(`/balances/loans/${loanID}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const deleteMyLoan = async (loanID: string) => {
+    return await requestWithAuth<unknown>(`/balances/loans/${loanID}`, {
+      method: "DELETE",
+    });
+  };
+
   return {
     clearSession,
     getAccessToken,
@@ -1195,6 +1286,10 @@ export const useAuthApi = () => {
     getMyTransaction,
     updateMyTransaction,
     deleteMyTransaction,
+    listMyLoans,
+    createMyLoan,
+    updateMyLoan,
+    deleteMyLoan,
     loginMember,
     applyLoginSession,
     refreshMemberToken,

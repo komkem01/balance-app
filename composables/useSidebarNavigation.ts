@@ -12,6 +12,7 @@ type SidebarRouteKey =
   | "wallets"
   | "categories"
   | "budgets"
+  | "loans"
   | "record"
   | "profile"
   | "settings";
@@ -36,6 +37,7 @@ const routeKeyMap: Record<string, SidebarRouteKey> = {
   "/wallet": "wallets",
   "/categories": "categories",
   "/budget": "budgets",
+  "/loan": "loans",
   "/new-entry": "record",
   "/account-profile": "profile",
   "/setting": "settings",
@@ -47,6 +49,7 @@ const pathByKey: Record<SidebarRouteKey, string> = {
   wallets: "/wallet",
   categories: "/categories",
   budgets: "/budget",
+  loans: "/loan",
   record: "/new-entry",
   profile: "/account-profile",
   settings: "/setting",
@@ -58,6 +61,7 @@ const sectionByRouteKey: Record<SidebarRouteKey, SidebarSectionKey> = {
   wallets: "management",
   categories: "management",
   budgets: "management",
+  loans: "management",
   record: "actions",
   profile: "system",
   settings: "system",

@@ -122,6 +122,12 @@
             >
               Budgets
             </button>
+            <button
+              @click="goTo('loans')"
+              :class="navClass('loans')"
+            >
+              Loans
+            </button>
           </div>
         </div>
 
@@ -420,6 +426,9 @@
                   <p class="text-xl font-light tracking-tight">
                     ฿ {{ wallet.balance.toLocaleString() }}
                   </p>
+                  <p class="text-[9px] text-slate-600 mt-1">
+                    Updated {{ formatWalletDate(wallet.updatedAt) }}
+                  </p>
                 </div>
               </div>
               <button
@@ -545,6 +554,14 @@ type WalletItem = {
   id: string;
   name: string;
   balance: number;
+  updatedAt: string;
+};
+
+const formatWalletDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 };
 
 type CategoryItem = {
@@ -960,6 +977,7 @@ const loadWallets = async () => {
     id: item.id,
     name: item.name,
     balance: Number(item.balance || 0),
+    updatedAt: item.updated_at || "",
   }));
 };
 

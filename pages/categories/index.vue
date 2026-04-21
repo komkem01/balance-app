@@ -122,6 +122,12 @@
             >
               Budgets
             </button>
+            <button
+              @click="goTo('loans')"
+              :class="navClass('loans')"
+            >
+              Loans
+            </button>
           </div>
         </div>
 

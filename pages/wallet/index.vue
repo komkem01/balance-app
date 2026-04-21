@@ -122,6 +122,12 @@
             >
               Budgets
             </button>
+            <button
+              @click="goTo('loans')"
+              :class="navClass('loans')"
+            >
+              Loans
+            </button>
           </div>
         </div>
 
@@ -410,6 +416,9 @@
                   <p class="text-xl font-light tracking-tight">
                     ฿ {{ wallet.balance.toLocaleString() }}
                   </p>
+                  <p class="text-[9px] text-slate-600 mt-1">
+                    Updated {{ formatWalletDate(wallet.updatedAt) }}
+                  </p>
                 </div>
               </div>
               <button
@@ -669,6 +678,9 @@
                           minimumFractionDigits: 2,
                         })
                       }}
+                    </p>
+                    <p class="text-[9px] text-slate-400 mt-1">
+                      Updated {{ formatWalletDate(wallet.updatedAt) }}
                     </p>
                     <div class="mt-1 flex items-center justify-end gap-3 action-reveal">
                       <button
@@ -1075,6 +1087,14 @@ type WalletItem = {
   balance: number;
   currency: string;
   colorCode: string;
+  updatedAt: string;
+};
+
+const formatWalletDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 };
 
 const mobileSidebarOpen = ref(false);
@@ -1188,6 +1208,7 @@ const loadWallets = async () => {
       balance: Number(item.balance || 0),
       currency: item.currency || "THB",
       colorCode: item.color_code || "#0F172A",
+      updatedAt: item.updated_at || "",
     }));
   } catch (error) {
     walletError.value = normalizeWalletError(error);
@@ -1216,6 +1237,7 @@ const addWallet = async () => {
       balance: Number(res.data.balance || 0),
       currency: res.data.currency || "THB",
       colorCode: res.data.color_code || newWallet.colorCode,
+      updatedAt: res.data.updated_at || "",
     });
 
     newWallet.name = "";
@@ -1344,6 +1366,7 @@ const confirmWalletAction = async () => {
               balance: Number(res.data.balance || 0),
               currency: res.data.currency || "THB",
               colorCode: res.data.color_code || editWallet.colorCode,
+              updatedAt: res.data.updated_at || "",
             }
           : wallet,
       );

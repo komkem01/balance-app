@@ -122,6 +122,12 @@
             >
               Budgets
             </button>
+            <button
+              @click="goTo('loans')"
+              :class="navClass('loans')"
+            >
+              Loans
+            </button>
           </div>
         </div>
 
@@ -484,15 +490,15 @@
             </h4>
 
             <form @submit.prevent="confirmSubmitTransaction" class="space-y-10">
-              <!-- Type Toggle (Income / Expense / Transfer) -->
+              <!-- Type Toggle (Income / Expense / Transfer / Loan Repayment) -->
               <div
-                class="flex p-1.5 bg-slate-50 rounded-[2rem] max-w-sm mx-auto"
+                class="grid grid-cols-2 gap-2 p-1.5 bg-slate-50 rounded-[2rem] max-w-xl mx-auto"
               >
                 <button
                   type="button"
                   @click="newRecord.type = 'expense'"
                   :class="[
-                    'flex-1 py-4 rounded-[1.8rem] text-[10px] font-bold uppercase tracking-widest transition-all',
+                    'py-4 rounded-[1.8rem] text-[10px] font-bold uppercase tracking-widest transition-all',
                     newRecord.type === 'expense'
                       ? 'bg-white shadow-sm text-rose-500'
                       : 'text-slate-400 hover:text-slate-600',
@@ -504,7 +510,7 @@
                   type="button"
                   @click="newRecord.type = 'income'"
                   :class="[
-                    'flex-1 py-4 rounded-[1.8rem] text-[10px] font-bold uppercase tracking-widest transition-all',
+                    'py-4 rounded-[1.8rem] text-[10px] font-bold uppercase tracking-widest transition-all',
                     newRecord.type === 'income'
                       ? 'bg-white shadow-sm text-emerald-500'
                       : 'text-slate-400 hover:text-slate-600',
@@ -516,13 +522,25 @@
                   type="button"
                   @click="newRecord.type = 'transfer'"
                   :class="[
-                    'flex-1 py-4 rounded-[1.8rem] text-[10px] font-bold uppercase tracking-widest transition-all',
+                    'py-4 rounded-[1.8rem] text-[10px] font-bold uppercase tracking-widest transition-all',
                     newRecord.type === 'transfer'
                       ? 'bg-white shadow-sm text-blue-600'
                       : 'text-slate-400 hover:text-slate-600',
                   ]"
                 >
                   Transfer
+                </button>
+                <button
+                  type="button"
+                  @click="newRecord.type = 'loan_repayment'"
+                  :class="[
+                    'py-4 rounded-[1.8rem] text-[10px] font-bold uppercase tracking-widest transition-all',
+                    newRecord.type === 'loan_repayment'
+                      ? 'bg-white shadow-sm text-indigo-600'
+                      : 'text-slate-400 hover:text-slate-600',
+                  ]"
+                >
+                  Loan Repayment
                 </button>
               </div>
 
@@ -550,11 +568,11 @@
                 <div class="space-y-3">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                    >{{ newRecord.type === 'transfer' ? 'From Wallet' : 'Archive Source (Wallet)' }}</label
+                    >{{ newRecord.type === 'transfer' || newRecord.type === 'loan_repayment' ? 'From Wallet' : 'Archive Source (Wallet)' }}</label
                   >
                   <AppDropdown
                     v-model="newRecord.wallet_id"
-                    :label="newRecord.type === 'transfer' ? 'Select Source Wallet' : 'Select Wallet'"
+                    :label="newRecord.type === 'transfer' || newRecord.type === 'loan_repayment' ? 'Select Source Wallet' : 'Select Wallet'"
                     :items="walletDropdownItems"
                     unstyled
                     trigger-class="w-full flex items-center justify-between px-8 py-5 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
@@ -565,9 +583,16 @@
                 <div class="space-y-3">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                    >{{ newRecord.type === 'transfer' ? 'Transfer Category' : 'Taxonomy (Category)' }}</label
+                    >{{ newRecord.type === 'loan_repayment' ? 'Repayment Category' : newRecord.type === 'transfer' ? 'Transfer Category' : 'Taxonomy (Category)' }}</label
                   >
+                  <div
+                    v-if="newRecord.type === 'loan_repayment'"
+                    class="w-full px-8 py-5 bg-slate-100 border border-slate-200 rounded-2xl text-sm text-slate-700"
+                  >
+                    {{ fixedLoanRepaymentCategoryLabel }}
+                  </div>
                   <AppDropdown
+                    v-else
                     v-model="newRecord.category_id"
                     :label="newRecord.type === 'transfer' ? 'Select Transfer Category' : 'Select Category'"
                     :items="recordCategoryDropdownItems"
@@ -575,21 +600,39 @@
                     trigger-class="w-full flex items-center justify-between px-8 py-5 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
                     menu-class="w-full"
                   />
+                  <p
+                    v-if="newRecord.type === 'loan_repayment'"
+                    class="text-[9px] text-slate-400 ml-1"
+                  >
+                    Category is locked for loan repayment.
+                  </p>
                 </div>
 
-                <div v-if="newRecord.type === 'transfer'" class="space-y-3">
+                <div v-if="newRecord.type === 'transfer' || newRecord.type === 'loan_repayment'" class="space-y-3">
                   <label
                     class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1"
-                    >To Wallet</label
+                    >{{ newRecord.type === 'loan_repayment' ? 'To Loan Wallet' : 'To Wallet' }}</label
                   >
                   <AppDropdown
                     v-model="newRecord.to_wallet_id"
-                    label="Select Destination Wallet"
-                    :items="destinationWalletDropdownItems"
+                    :label="newRecord.type === 'loan_repayment' ? 'Select Loan Wallet' : 'Select Destination Wallet'"
+                    :items="newRecord.type === 'loan_repayment' ? loanAccountDropdownItems : destinationWalletDropdownItems"
                     unstyled
                     trigger-class="w-full flex items-center justify-between px-8 py-5 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
                     menu-class="w-full"
                   />
+                  <p
+                    v-if="newRecord.type === 'loan_repayment' && loanAccountsLoading"
+                    class="text-[9px] text-slate-400 ml-1"
+                  >
+                    Loading loan accounts...
+                  </p>
+                  <p
+                    v-if="newRecord.type === 'loan_repayment' && !loanAccountsLoading && loanAccountDropdownItems.length === 0"
+                    class="text-[9px] text-rose-400 ml-1"
+                  >
+                    No loan account found.
+                  </p>
                 </div>
 
                 <div class="space-y-3">
@@ -1443,7 +1486,7 @@ import { useAuthApi } from "../../composables/useAuthApi";
 import { useTotalNetWorth } from "../../composables/useTotalNetWorth";
 import { useSidebarNavigation } from "../../composables/useSidebarNavigation";
 
-type TransactionType = "income" | "expense" | "transfer";
+type TransactionType = "income" | "expense" | "transfer" | "loan_repayment";
 type CategoryType = "income" | "expense";
 
 type WalletItem = {
@@ -1453,10 +1496,19 @@ type WalletItem = {
   currency: string;
 };
 
+type LoanAccountItem = {
+  id: string;
+  name: string;
+  remainingBalance: number;
+};
+
+type CategoryPurpose = "loan_repayment";
+
 type CategoryItem = {
   id: string;
   name: string;
   type: CategoryType;
+  purpose?: CategoryPurpose | null;
 };
 
 type BudgetItem = {
@@ -1491,6 +1543,7 @@ type TransferNoteMeta = {
 };
 
 const transferNotePrefix = "__transfer__|";
+const FIXED_LOAN_REPAYMENT_CATEGORY_ID = "a1b2c3d4-0000-4000-8000-000000000001";
 
 const parseTransferNote = (note: string): TransferNoteMeta | null => {
   if (!note.startsWith(transferNotePrefix)) {
@@ -1520,7 +1573,7 @@ const { currentPath, sections, toggleSection, goTo, logout, logoutConfirmOpen, c
     mobileSidebarOpen.value = false;
   },
 });
-const { listMyWallets, createMyWallet, listMyCategories, createMyCategory, deleteMyCategory, listMyBudgets, createMyBudget, deleteMyBudget, listMyTransactions, createMyTransaction, createMyTransferTransaction, uploadMyTransactionSlip, getMyTransactionSlip } = useAuthApi();
+const { listMyWallets, createMyWallet, listMyCategories, createMyCategory, deleteMyCategory, listMyBudgets, createMyBudget, deleteMyBudget, listMyTransactions, createMyTransaction, createMyTransferTransaction, uploadMyTransactionSlip, getMyTransactionSlip, listMyLoans, updateMyLoan } = useAuthApi();
 const { totalNetWorth: totalNetWorthFromAPI, refreshTotalNetWorth } = useTotalNetWorth();
 const loading = ref(false);
 const message = ref("");
@@ -1619,6 +1672,33 @@ const destinationWalletDropdownItems = computed(() =>
     })),
 );
 
+const loanAccounts = ref<LoanAccountItem[]>([]);
+const loanAccountsLoading = ref(false);
+
+const loanAccountDropdownItems = computed(() =>
+  loanAccounts.value.map((loan) => ({
+    label: `${loan.name} (฿${loan.remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })})`,
+    value: loan.id,
+  })),
+);
+
+const selectedLoanAccount = computed(() =>
+  loanAccounts.value.find((loan) => loan.id === newRecord.to_wallet_id) || null,
+);
+
+const applyDefaultLoanAccount = () => {
+  if (newRecord.type !== "loan_repayment") {
+    return;
+  }
+
+  const exists = loanAccounts.value.some((loan) => loan.id === newRecord.to_wallet_id);
+  if (exists) {
+    return;
+  }
+
+  newRecord.to_wallet_id = loanAccounts.value[0]?.id || "";
+};
+
 const currencyDropdownItems = [
   { label: "THB - Thai Baht", value: "THB" },
   { label: "USD - US Dollar", value: "USD" },
@@ -1632,6 +1712,21 @@ const loadWallets = async () => {
     balance: Number(item.balance || 0),
     currency: item.currency || "THB",
   }));
+};
+
+const loadLoanAccounts = async () => {
+  loanAccountsLoading.value = true;
+  try {
+    const res = await listMyLoans({ page: 1, size: 200 });
+    loanAccounts.value = (res.items || []).map((item) => ({
+      id: item.id,
+      name: item.name,
+      remainingBalance: Number(item.remaining_balance || 0),
+    }));
+    applyDefaultLoanAccount();
+  } finally {
+    loanAccountsLoading.value = false;
+  }
 };
 
 const addWallet = async () => {
@@ -1698,11 +1793,32 @@ const filteredCategories = computed(() => {
 
 const recordCategoryDropdownItems = computed(() =>
   newRecord.type === "transfer"
-    ? categories.value.map((cat) => ({ label: `${cat.name} (${cat.type})`, value: cat.id }))
+  ? categories.value.map((cat) => ({ label: `${cat.name} (${cat.type})`, value: cat.id }))
+  : newRecord.type === "loan_repayment"
+    ? categories.value
+        .filter((cat) => cat.type === "expense")
+        .map((cat) => ({ label: cat.name, value: cat.id }))
     : categories.value
         .filter((cat) => cat.type === newRecord.type)
         .map((cat) => ({ label: cat.name, value: cat.id })),
 );
+
+const defaultLoanRepaymentCategoryID = computed(() => {
+  return FIXED_LOAN_REPAYMENT_CATEGORY_ID;
+});
+
+const fixedLoanRepaymentCategoryLabel = computed(() => {
+  const selected = categories.value.find((cat) => cat.id === FIXED_LOAN_REPAYMENT_CATEGORY_ID);
+  return selected?.name || "Loan Repayment";
+});
+
+const applyDefaultTransferCategory = () => {
+  if (newRecord.type !== "loan_repayment") {
+    return;
+  }
+
+  newRecord.category_id = FIXED_LOAN_REPAYMENT_CATEGORY_ID;
+};
 
 const getCategoryName = (id: string) => {
   const cat = categories.value.find((c) => c.id === id);
@@ -1715,6 +1831,7 @@ const loadCategories = async () => {
     id: item.id,
     name: item.name,
     type: item.type,
+    purpose: item.purpose || null,
   }));
 };
 
@@ -2011,18 +2128,31 @@ const submitTransaction = async () => {
   if (!newRecord.amount || !newRecord.wallet_id)
     return;
 
+  if (newRecord.type === "loan_repayment") {
+    newRecord.category_id = FIXED_LOAN_REPAYMENT_CATEGORY_ID;
+    if (!newRecord.category_id) {
+      message.value = "loan-repayment-category-not-found";
+      return;
+    }
+  }
+
   if (newRecord.type !== "transfer" && !newRecord.category_id) {
     message.value = "transaction-category-required";
     return;
   }
 
-  if (newRecord.type === "transfer" && !newRecord.to_wallet_id) {
+  if ((newRecord.type === "transfer" || newRecord.type === "loan_repayment") && !newRecord.to_wallet_id) {
     message.value = "transaction-transfer-to-wallet-required";
     return;
   }
 
   if (newRecord.type === "transfer" && newRecord.wallet_id === newRecord.to_wallet_id) {
     message.value = "transaction-transfer-same-wallet";
+    return;
+  }
+
+  if (newRecord.type === "loan_repayment" && !selectedLoanAccount.value) {
+    message.value = "loan-account-not-found";
     return;
   }
 
@@ -2042,7 +2172,16 @@ const submitTransaction = async () => {
   }
 
   if (
-    (newRecord.type === "expense" || newRecord.type === "transfer") &&
+    newRecord.type === "loan_repayment" &&
+    selectedLoanAccount.value &&
+    normalizeTwoDecimalAmount(newRecord.amount) > normalizeTwoDecimalAmount(selectedLoanAccount.value.remainingBalance)
+  ) {
+    message.value = "loan-repayment-exceeds-remaining-balance";
+    return;
+  }
+
+  if (
+    (newRecord.type === "expense" || newRecord.type === "transfer" || newRecord.type === "loan_repayment") &&
     normalizeTwoDecimalAmount(newRecord.amount) >
       normalizeTwoDecimalAmount(getWalletBalance(newRecord.wallet_id))
   ) {
@@ -2061,12 +2200,34 @@ const submitTransaction = async () => {
         transaction_date: newRecord.date,
         note: newRecord.note.trim(),
       });
+    } else if (newRecord.type === "loan_repayment" && selectedLoanAccount.value) {
+      const paidAmount = normalizeTwoDecimalAmount(newRecord.amount);
+      const nextRemainingBalance = normalizeTwoDecimalAmount(
+        Math.max(0, selectedLoanAccount.value.remainingBalance - paidAmount),
+      );
+
+      await createMyTransaction({
+        wallet_id: newRecord.wallet_id,
+        category_id: FIXED_LOAN_REPAYMENT_CATEGORY_ID,
+        amount: paidAmount,
+        type: "expense",
+        transaction_date: newRecord.date,
+        note: newRecord.note.trim(),
+        image_url: uploadedSlipURL.value || undefined,
+      });
+
+      await updateMyLoan(selectedLoanAccount.value.id, {
+        remaining_balance: nextRemainingBalance,
+      });
     } else {
+      const directTransactionType: "income" | "expense" =
+        newRecord.type === "income" ? "income" : "expense";
+
       await createMyTransaction({
         wallet_id: newRecord.wallet_id,
         category_id: newRecord.category_id,
         amount: normalizeTwoDecimalAmount(newRecord.amount),
-        type: newRecord.type,
+        type: directTransactionType,
         transaction_date: newRecord.date,
         note: newRecord.note.trim(),
         image_url: uploadedSlipURL.value || undefined,
@@ -2075,6 +2236,7 @@ const submitTransaction = async () => {
 
     await Promise.all([
       loadWallets(),
+      loadLoanAccounts(),
       loadBudgets(),
       loadTransactions(),
       refreshTotalNetWorth(),
@@ -2101,7 +2263,11 @@ const submitTransaction = async () => {
 const confirmSubmitTransaction = () => {
   openConfirmModal(
     "Confirm Save",
-    newRecord.type === "transfer" ? "Transfer between wallets?" : "Save this transaction record?",
+    newRecord.type === "loan_repayment"
+      ? "Confirm loan repayment transfer?"
+      : newRecord.type === "transfer"
+      ? "Transfer between wallets?"
+      : "Save this transaction record?",
     "Save",
     submitTransaction,
   );
@@ -2124,13 +2290,25 @@ const confirmUpdateProfile = () => {
 watch(
   () => newRecord.type,
   (nextType) => {
-    if (nextType === "transfer") {
+    if (nextType === "transfer" || nextType === "loan_repayment") {
       clearSlipFile();
+      applyDefaultTransferCategory();
+      if (nextType === "loan_repayment") {
+        void loadLoanAccounts();
+      }
       return;
     }
 
     newRecord.to_wallet_id = "";
   },
+);
+
+watch(
+  () => categories.value,
+  () => {
+    applyDefaultTransferCategory();
+  },
+  { deep: true },
 );
 
 watch(
@@ -2182,7 +2360,7 @@ const calendarButtonLabel = computed(() => {
 const loadInitialData = async () => {
   pageLoading.value = true;
   try {
-    await Promise.all([loadWallets(), loadCategories()]);
+    await Promise.all([loadWallets(), loadCategories(), loadLoanAccounts()]);
     await Promise.all([loadBudgets(), loadTransactions(), refreshTotalNetWorth()]);
   } catch (error) {
     message.value = normalizeErrorMessage(error);
