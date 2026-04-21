@@ -111,6 +111,12 @@
               {{ t("navWallets") }}
             </button>
             <button
+              @click="goTo('goals')"
+              :class="navClass('goals')"
+            >
+              Goals
+            </button>
+            <button
               @click="goTo('categories')"
               :class="navClass('categories')"
             >

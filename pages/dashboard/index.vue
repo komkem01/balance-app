@@ -123,6 +123,12 @@
               Budgets
             </button>
             <button
+              @click="goTo('goals')"
+              :class="navClass('goals')"
+            >
+              Goals
+            </button>
+            <button
               @click="goTo('loans')"
               :class="navClass('loans')"
             >
@@ -444,6 +450,44 @@
               class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"
             >
               <h4
+                class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6"
+              >
+                Goals Snapshot
+              </h4>
+              <div class="space-y-3 text-sm">
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500">Active</span>
+                  <span class="font-semibold text-slate-900">{{ goalActiveCount }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500">Completed</span>
+                  <span class="font-semibold text-slate-900">{{ goalCompletedCount }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500">Target Total</span>
+                  <span class="font-semibold text-slate-900">
+                    ฿ {{ goalTargetTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-slate-500">Current Total</span>
+                  <span class="font-semibold text-emerald-600">
+                    ฿ {{ goalCurrentTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </span>
+                </div>
+              </div>
+              <button
+                @click="goTo('goals')"
+                class="w-full mt-6 py-3 border border-slate-200 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
+              >
+                Open Goals
+              </button>
+            </div>
+
+            <div
+              class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"
+            >
+              <h4
                 class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8"
               >
                 Budget Status
@@ -569,6 +613,13 @@ type CategoryItem = {
   name: string;
 };
 
+type GoalSummaryItem = {
+  id: string;
+  status: "active" | "completed" | "paused" | "archived";
+  targetAmount: number;
+  currentAmount: number;
+};
+
 type BudgetItem = {
   id: string;
   category_id: string;
@@ -651,6 +702,7 @@ const {
   listMyWallets,
   listMyCategories,
   listMyBudgets,
+  listMyGoals,
   listMyTransactions,
   listMyTransactionMonthlySummary,
 } = useAuthApi();
@@ -659,6 +711,7 @@ const router = useRouter();
 const wallets = ref<WalletItem[]>([]);
 const categories = ref<CategoryItem[]>([]);
 const budgets = ref<BudgetItem[]>([]);
+const goals = ref<GoalSummaryItem[]>([]);
 const allTransactions = ref<TransactionItem[]>([]);
 const monthlySummaryItems = ref<MonthlySummaryAggregateItem[]>([]);
 const pageLoading = ref(false);
@@ -971,6 +1024,11 @@ const activeBudgets = computed(() => {
   });
 });
 
+const goalActiveCount = computed(() => goals.value.filter((goal) => goal.status === "active").length);
+const goalCompletedCount = computed(() => goals.value.filter((goal) => goal.status === "completed").length);
+const goalTargetTotal = computed(() => goals.value.reduce((acc, goal) => acc + goal.targetAmount, 0));
+const goalCurrentTotal = computed(() => goals.value.reduce((acc, goal) => acc + goal.currentAmount, 0));
+
 const loadWallets = async () => {
   const res = await listMyWallets({ page: 1, size: 200, isActive: true });
   wallets.value = (res.items || []).map((item) => ({
@@ -996,6 +1054,16 @@ const loadBudgets = async () => {
     category_id: item.category_id || "",
     amount: Number(item.amount || 0),
     spent: Number(item.spent_amount || 0),
+  }));
+};
+
+const loadGoals = async () => {
+  const res = await listMyGoals({ page: 1, size: 300 });
+  goals.value = (res.items || []).map((item) => ({
+    id: item.id,
+    status: item.status,
+    targetAmount: Number(item.target_amount || 0),
+    currentAmount: Number(item.current_amount || 0),
   }));
 };
 
@@ -1074,7 +1142,7 @@ const setChartRange = (range: ChartRange) => {
 const loadInitialData = async () => {
   pageLoading.value = true;
   try {
-    await Promise.all([loadWallets(), loadCategories(), loadBudgets()]);
+    await Promise.all([loadWallets(), loadCategories(), loadBudgets(), loadGoals()]);
     await Promise.all([loadTransactions(), loadMonthlySummary(), refreshTotalNetWorth()]);
   } catch (error) {
     console.error("dashboard-load-failed", normalizeErrorMessage(error));

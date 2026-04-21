@@ -75,6 +75,7 @@
             <button @click="goTo('wallets')" :class="navClass('wallets')">Wallets</button>
             <button @click="goTo('categories')" :class="navClass('categories')">Categories</button>
             <button @click="goTo('budgets')" :class="navClass('budgets')">Budgets</button>
+            <button @click="goTo('goals')" :class="navClass('goals')">Goals</button>
             <button @click="goTo('loans')" :class="navClass('loans')">Loans</button>
           </div>
         </div>
@@ -769,7 +770,7 @@ const navClass = (key: string) =>
   ].join(" ");
 
 // ─── Wallets ──────────────────────────────────────────────────────────────────
-const { listMyWallets, updateMyWallet, listMyLoans, createMyLoan, updateMyLoan, deleteMyLoan } = useAuthApi();
+const { listMyWallets, updateMyWallet, listMyLoans, createMyLoan, updateMyLoan, deleteMyLoan, createMyTransaction } = useAuthApi();
 const wallets = ref<WalletItem[]>([]);
 const walletsLoading = ref(false);
 
@@ -814,6 +815,8 @@ const loanColorChoices = [
   "#ec4899", // pink
   "#0F172A", // slate-900
 ];
+
+const FIXED_LOAN_DRAW_CATEGORY_ID = "a1b2c3d4-0000-4000-8000-000000000002";
 
 // ─── Loans Data ──────────────────────────────────────────────────────────────
 const loans = ref<LoanItem[]>([]);
@@ -1086,6 +1089,18 @@ const executeTransfer = async () => {
   transferConfirmOpen.value = false;
 
   try {
+    const txDate = today();
+    const txNote = transferForm.note.trim() || `Loan draw from ${loan.name}`;
+
+    await createMyTransaction({
+      wallet_id: targetWallet.id,
+      category_id: FIXED_LOAN_DRAW_CATEGORY_ID,
+      amount: drawAmount,
+      type: "income",
+      transaction_date: txDate,
+      note: txNote,
+    });
+
     // Update wallet balance via API
     const newBalance = targetWallet.balance + drawAmount;
     await updateMyWallet(targetWallet.id, { balance: newBalance });

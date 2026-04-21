@@ -123,6 +123,12 @@
               Budgets
             </button>
             <button
+              @click="goTo('goals')"
+              :class="navClass('goals')"
+            >
+              Goals
+            </button>
+            <button
               @click="goTo('loans')"
               :class="navClass('loans')"
             >

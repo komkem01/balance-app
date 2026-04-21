@@ -123,6 +123,12 @@
               Budgets
             </button>
             <button
+              @click="goTo('goals')"
+              :class="navClass('goals')"
+            >
+              Goals
+            </button>
+            <button
               @click="goTo('loans')"
               :class="navClass('loans')"
             >
@@ -1500,6 +1506,7 @@ type LoanAccountItem = {
   id: string;
   name: string;
   remainingBalance: number;
+  monthlyPayment: number;
 };
 
 type CategoryPurpose = "loan_repayment";
@@ -1544,6 +1551,7 @@ type TransferNoteMeta = {
 
 const transferNotePrefix = "__transfer__|";
 const FIXED_LOAN_REPAYMENT_CATEGORY_ID = "a1b2c3d4-0000-4000-8000-000000000001";
+const FIXED_LOAN_DRAW_CATEGORY_ID = "a1b2c3d4-0000-4000-8000-000000000002";
 
 const parseTransferNote = (note: string): TransferNoteMeta | null => {
   if (!note.startsWith(transferNotePrefix)) {
@@ -1686,19 +1694,6 @@ const selectedLoanAccount = computed(() =>
   loanAccounts.value.find((loan) => loan.id === newRecord.to_wallet_id) || null,
 );
 
-const applyDefaultLoanAccount = () => {
-  if (newRecord.type !== "loan_repayment") {
-    return;
-  }
-
-  const exists = loanAccounts.value.some((loan) => loan.id === newRecord.to_wallet_id);
-  if (exists) {
-    return;
-  }
-
-  newRecord.to_wallet_id = loanAccounts.value[0]?.id || "";
-};
-
 const currencyDropdownItems = [
   { label: "THB - Thai Baht", value: "THB" },
   { label: "USD - US Dollar", value: "USD" },
@@ -1722,8 +1717,8 @@ const loadLoanAccounts = async () => {
       id: item.id,
       name: item.name,
       remainingBalance: Number(item.remaining_balance || 0),
+      monthlyPayment: Number(item.monthly_payment || 0),
     }));
-    applyDefaultLoanAccount();
   } finally {
     loanAccountsLoading.value = false;
   }
@@ -1793,14 +1788,17 @@ const filteredCategories = computed(() => {
 
 const recordCategoryDropdownItems = computed(() =>
   newRecord.type === "transfer"
-  ? categories.value.map((cat) => ({ label: `${cat.name} (${cat.type})`, value: cat.id }))
-  : newRecord.type === "loan_repayment"
     ? categories.value
-        .filter((cat) => cat.type === "expense")
-        .map((cat) => ({ label: cat.name, value: cat.id }))
-    : categories.value
-        .filter((cat) => cat.type === newRecord.type)
-        .map((cat) => ({ label: cat.name, value: cat.id })),
+        .filter((cat) => cat.id !== FIXED_LOAN_REPAYMENT_CATEGORY_ID && cat.id !== FIXED_LOAN_DRAW_CATEGORY_ID && cat.purpose !== "loan_repayment")
+        .map((cat) => ({ label: `${cat.name} (${cat.type})`, value: cat.id }))
+    : newRecord.type === "loan_repayment"
+      ? categories.value
+          .filter((cat) => cat.id === FIXED_LOAN_REPAYMENT_CATEGORY_ID)
+          .map((cat) => ({ label: cat.name, value: cat.id }))
+      : categories.value
+          .filter((cat) => cat.type === newRecord.type)
+          .filter((cat) => cat.id !== FIXED_LOAN_REPAYMENT_CATEGORY_ID && cat.id !== FIXED_LOAN_DRAW_CATEGORY_ID && cat.purpose !== "loan_repayment")
+          .map((cat) => ({ label: cat.name, value: cat.id })),
 );
 
 const defaultLoanRepaymentCategoryID = computed(() => {
@@ -2013,6 +2011,21 @@ const loadTransactions = async () => {
   const res = await listMyTransactions({ page: 1, size: 300 });
   const walletMap = new Map(wallets.value.map((item) => [item.id, item.name]));
   const categoryMap = new Map(categories.value.map((item) => [item.id, item.name]));
+  const resolveCategoryName = (categoryID: string | null | undefined) => {
+    if (!categoryID) {
+      return "Uncategorized";
+    }
+
+    if (categoryID === FIXED_LOAN_REPAYMENT_CATEGORY_ID) {
+      return categoryMap.get(categoryID) || "ชำระเงินกู้";
+    }
+
+    if (categoryID === FIXED_LOAN_DRAW_CATEGORY_ID) {
+      return categoryMap.get(categoryID) || "เบิกเงินกู้";
+    }
+
+    return categoryMap.get(categoryID) || "Uncategorized";
+  };
 
   allTransactions.value = (res.items || []).map((item) => ({
     ...(() => {
@@ -2025,7 +2038,7 @@ const loadTransactions = async () => {
 
       return {
         isTransfer,
-        displayCategory: isTransfer ? "Transfer" : (item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized"),
+        displayCategory: isTransfer ? "Transfer" : resolveCategoryName(item.category_id),
         displayNote: isTransfer
           ? transferMeta?.userNote
             ? `Transfer ${transferMeta.direction === "out" ? "to" : "from"} ${counterpartyWalletName} - ${transferMeta.userNote}`
@@ -2034,7 +2047,7 @@ const loadTransactions = async () => {
       };
     })(),
     id: item.id,
-    category: item.category_id ? categoryMap.get(item.category_id) || "Uncategorized" : "Uncategorized",
+    category: resolveCategoryName(item.category_id),
     note: item.note || "",
     amount: Number(item.amount || 0),
     type: item.type,
@@ -2181,6 +2194,16 @@ const submitTransaction = async () => {
   }
 
   if (
+    newRecord.type === "loan_repayment" &&
+    selectedLoanAccount.value &&
+    selectedLoanAccount.value.monthlyPayment > 0 &&
+    normalizeTwoDecimalAmount(newRecord.amount) < normalizeTwoDecimalAmount(selectedLoanAccount.value.monthlyPayment)
+  ) {
+    message.value = "loan-repayment-below-monthly-payment";
+    return;
+  }
+
+  if (
     (newRecord.type === "expense" || newRecord.type === "transfer" || newRecord.type === "loan_repayment") &&
     normalizeTwoDecimalAmount(newRecord.amount) >
       normalizeTwoDecimalAmount(getWalletBalance(newRecord.wallet_id))
@@ -2290,6 +2313,11 @@ const confirmUpdateProfile = () => {
 watch(
   () => newRecord.type,
   (nextType) => {
+    // Do not carry previous category selection across modes.
+    if (nextType === "expense" || nextType === "transfer") {
+      newRecord.category_id = "";
+    }
+
     if (nextType === "transfer" || nextType === "loan_repayment") {
       clearSlipFile();
       applyDefaultTransferCategory();

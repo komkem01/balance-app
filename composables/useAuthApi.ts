@@ -267,6 +267,76 @@ type UpdateLoanRequest = {
   end_date?: string;
 };
 
+type GoalType = "savings" | "debt_payoff";
+type GoalStatus = "active" | "completed" | "paused" | "archived";
+type GoalTrackingSourceType = "wallet" | "all_wallets" | "loan";
+
+type GoalItemResponse = {
+  id: string;
+  member_id: string | null;
+  name: string;
+  type: GoalType;
+  target_amount: number;
+  start_amount: number;
+  current_amount: number;
+  start_date: string | null;
+  target_date: string | null;
+  status: GoalStatus;
+  auto_tracking: boolean;
+  tracking_source_type: GoalTrackingSourceType | null;
+  tracking_source_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type GoalEntrySourceType = "transaction" | "loan" | "system";
+
+type GoalEntryItemResponse = {
+  id: string;
+  goal_id: string;
+  member_id: string | null;
+  source_type: GoalEntrySourceType;
+  source_id: string | null;
+  amount_before: number;
+  amount_after: number;
+  amount_delta: number;
+  note: string;
+  created_at: string;
+};
+
+type GoalListResponse = {
+  items: GoalItemResponse[];
+  paginate: { page: number; size: number; total: number };
+};
+
+type CreateGoalRequest = {
+  member_id?: string;
+  name: string;
+  type: GoalType;
+  target_amount: number;
+  start_amount?: number;
+  current_amount?: number;
+  start_date?: string;
+  target_date?: string;
+  status?: GoalStatus;
+  auto_tracking?: boolean;
+  tracking_source_type?: GoalTrackingSourceType;
+  tracking_source_id?: string;
+};
+
+type UpdateGoalRequest = {
+  name?: string;
+  target_amount?: number;
+  start_amount?: number;
+  current_amount?: number;
+  start_date?: string;
+  target_date?: string;
+  status?: GoalStatus;
+  auto_tracking?: boolean;
+  tracking_source_type?: GoalTrackingSourceType;
+  tracking_source_id?: string;
+};
+
 type BudgetItemResponse = {
   id: string;
   member_id: string | null;
@@ -1243,6 +1313,80 @@ export const useAuthApi = () => {
     });
   };
 
+  const listMyGoals = async (params?: {
+    page?: number;
+    size?: number;
+    status?: GoalStatus;
+    type?: GoalType;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set("page", String(params.page));
+    if (params?.size) q.set("size", String(params.size));
+    if (params?.status) q.set("status", params.status);
+    if (params?.type) q.set("type", params.type);
+
+    const res = await requestWithAuth<GoalItemResponse[] | GoalListResponse>(`/balances/goals?${q.toString()}`, {
+      method: "GET",
+    });
+
+    const data = res.data;
+    if (Array.isArray(data)) {
+      return {
+        items: data,
+        paginate: (res as unknown as GoalListResponse).paginate,
+      };
+    }
+
+    return {
+      items: data?.items || [],
+      paginate: data?.paginate || (res as unknown as GoalListResponse).paginate,
+    };
+  };
+
+  const createMyGoal = async (body: CreateGoalRequest) => {
+    return await requestWithAuth<GoalItemResponse>("/balances/goals", {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const updateMyGoal = async (goalID: string, body: UpdateGoalRequest) => {
+    return await requestWithAuth<GoalItemResponse>(`/balances/goals/${goalID}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    });
+  };
+
+  const getMyGoal = async (goalID: string) => {
+    return await requestWithAuth<GoalItemResponse>(`/balances/goals/${goalID}`, {
+      method: "GET",
+    });
+  };
+
+  const listMyGoalEntries = async (goalID: string, params?: { memberID?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.memberID) {
+      q.set("member_id", params.memberID);
+    }
+
+    const queryString = q.toString();
+    const suffix = queryString ? `?${queryString}` : "";
+
+    const res = await requestWithAuth<GoalEntryItemResponse[]>(`/balances/goals/${goalID}/entries${suffix}`, {
+      method: "GET",
+    });
+
+    return {
+      items: res.data || [],
+    };
+  };
+
+  const deleteMyGoal = async (goalID: string) => {
+    return await requestWithAuth<unknown>(`/balances/goals/${goalID}`, {
+      method: "DELETE",
+    });
+  };
+
   return {
     clearSession,
     getAccessToken,
@@ -1290,6 +1434,12 @@ export const useAuthApi = () => {
     createMyLoan,
     updateMyLoan,
     deleteMyLoan,
+    listMyGoals,
+    createMyGoal,
+    updateMyGoal,
+    getMyGoal,
+    deleteMyGoal,
+    listMyGoalEntries,
     loginMember,
     applyLoginSession,
     refreshMemberToken,
