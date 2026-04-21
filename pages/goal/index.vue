@@ -122,7 +122,7 @@
     </aside>
 
     <main class="relative z-10 h-screen min-h-0 min-w-0 overflow-y-auto p-6 lg:p-10 transition-all duration-300 flex-1">
-      <header class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <header class="mb-10 flex flex-col gap-5 sm:mb-12 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <button
             class="mb-4 inline-flex min-[1025px]:hidden items-center gap-2 rounded-xl border border-slate-200 bg-white/80 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-600"
@@ -130,219 +130,513 @@
           >
             <span class="text-sm">☰</span> Menu
           </button>
-          <p class="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.3em] mb-2">Planning</p>
+          <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-[0.3em] mb-2">Management</p>
           <h3 class="text-3xl lg:text-[2rem] font-light tracking-tight text-slate-900">Goals Planner</h3>
         </div>
 
-        <button
-          @click="showAddForm = !showAddForm"
-          class="bg-slate-900 text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
-        >
-          + Add Goal
-        </button>
+        <div class="flex w-full items-center justify-between sm:w-auto sm:justify-end sm:space-x-6">
+          <div class="text-right">
+            <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Total Target</p>
+            <p class="text-xl font-medium tracking-tight text-slate-900">
+              ฿ {{ totalTargetAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+            </p>
+            <p class="text-[9px] text-emerald-500 uppercase tracking-widest mb-1 mt-2">Current Progress</p>
+            <p class="text-xl font-medium tracking-tight text-emerald-600">
+              ฿ {{ totalCurrentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+            </p>
+          </div>
+          <button
+            @click="showAddForm = true"
+            class="bg-slate-900 text-white px-6 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
+          >
+            + Add Goal
+          </button>
+        </div>
       </header>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div class="bg-white p-5 rounded-2xl border border-slate-100">
-          <p class="text-[9px] text-slate-400 uppercase tracking-widest">Active Goals</p>
-          <p class="text-2xl font-light mt-1">{{ activeGoals }}</p>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-100">
-          <p class="text-[9px] text-slate-400 uppercase tracking-widest">Completed</p>
-          <p class="text-2xl font-light mt-1">{{ completedGoals }}</p>
-        </div>
-        <div class="bg-white p-5 rounded-2xl border border-slate-100">
-          <p class="text-[9px] text-slate-400 uppercase tracking-widest">Total Target</p>
-          <p class="text-2xl font-light mt-1">฿ {{ totalTargetAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</p>
-        </div>
-      </div>
-
-      <div v-if="showAddForm" class="bg-white border border-slate-100 rounded-3xl p-6 mb-8">
-        <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-5">Create Goal</h4>
-        <form class="grid grid-cols-1 md:grid-cols-2 gap-4" @submit.prevent="createGoal">
-          <input v-model.trim="newGoal.name" placeholder="Goal name" class="px-4 py-3 rounded-xl border border-slate-200 text-sm" required />
-
-          <select v-model="newGoal.type" class="px-4 py-3 rounded-xl border border-slate-200 text-sm" required>
-            <option value="savings">Savings</option>
-            <option value="debt_payoff">Debt Payoff</option>
-          </select>
-
-          <input v-model.number="newGoal.target_amount" type="number" step="0.01" min="0" placeholder="Target amount" class="px-4 py-3 rounded-xl border border-slate-200 text-sm" required />
-          <input v-model.number="newGoal.start_amount" type="number" step="0.01" min="0" placeholder="Start amount" class="px-4 py-3 rounded-xl border border-slate-200 text-sm" />
-
-          <input v-model="newGoal.start_date" type="date" class="px-4 py-3 rounded-xl border border-slate-200 text-sm" />
-          <input v-model="newGoal.target_date" type="date" class="px-4 py-3 rounded-xl border border-slate-200 text-sm" />
-
-          <div class="md:col-span-2 flex items-center gap-2">
-            <input id="goal-auto-tracking" v-model="newGoal.auto_tracking" type="checkbox" />
-            <label for="goal-auto-tracking" class="text-sm text-slate-700">Auto tracking</label>
+      <div class="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Active Goals</p>
+            <p class="text-2xl font-light tracking-tight text-slate-900">{{ activeGoals }}</p>
+            <p class="text-[9px] text-slate-400 mt-1">{{ goals.length }} total goal{{ goals.length !== 1 ? 's' : '' }}</p>
           </div>
+          <div class="bg-emerald-50 p-6 rounded-[2rem] border border-emerald-100 shadow-sm">
+            <p class="text-[9px] font-bold text-emerald-500 uppercase tracking-widest mb-3">Completed</p>
+            <p class="text-2xl font-light tracking-tight text-emerald-700">{{ completedGoals }}</p>
+            <p class="text-[9px] text-emerald-500 mt-1">{{ completionRate.toFixed(1) }}% completion rate</p>
+          </div>
+          <div class="bg-slate-900 p-6 rounded-[2rem] shadow-sm">
+            <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3">Overall Progress</p>
+            <p class="text-2xl font-light tracking-tight text-white">
+              {{ totalProgressPercent.toFixed(1) }}%
+            </p>
+            <p class="text-[9px] text-slate-400 mt-1">across all targets</p>
+          </div>
+        </div>
 
-          <template v-if="newGoal.auto_tracking">
-            <select v-model="newGoal.tracking_source_type" class="px-4 py-3 rounded-xl border border-slate-200 text-sm">
-              <option value="">Select tracking source</option>
-              <option value="all_wallets">All Wallets</option>
-              <option value="wallet">Specific Wallet</option>
-              <option value="loan">Specific Loan</option>
-            </select>
+        <div class="space-y-6">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Goals Portfolio</h4>
 
-            <select
-              v-model="newGoal.tracking_source_id"
-              :disabled="newGoal.tracking_source_type !== 'wallet' && newGoal.tracking_source_type !== 'loan'"
-              class="px-4 py-3 rounded-xl border border-slate-200 text-sm disabled:bg-slate-100"
-            >
-              <option value="">Select source item</option>
-              <option
-                v-for="item in trackingSourceItems"
-                :key="item.value"
-                :value="item.value"
+            <div class="flex items-center gap-3">
+              <div class="w-[170px] shrink-0">
+                <AppDropdown
+                  v-model="statusFilter"
+                  label="All Status"
+                  :items="statusFilterOptions"
+                  unstyled
+                  trigger-class="inline-flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-slate-600"
+                  menu-class="w-full"
+                />
+              </div>
+
+              <div class="w-[170px] shrink-0">
+                <AppDropdown
+                  v-model="typeFilter"
+                  label="All Types"
+                  :items="typeFilterOptions"
+                  unstyled
+                  trigger-class="inline-flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-slate-600"
+                  menu-class="w-full"
+                />
+              </div>
+
+              <button
+                class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-slate-600"
+                @click="void loadGoals()"
               >
-                {{ item.label }}
-              </option>
-            </select>
-          </template>
-
-          <div class="md:col-span-2 flex justify-end gap-3 mt-2">
-            <button type="button" class="px-5 py-2 rounded-xl border border-slate-200 text-xs font-bold uppercase tracking-widest" @click="showAddForm = false">Cancel</button>
-            <button type="submit" :disabled="saving" class="px-6 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold uppercase tracking-widest disabled:opacity-60">Save Goal</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="flex items-center gap-3 mb-5">
-        <select v-model="statusFilter" class="px-4 py-2 rounded-xl border border-slate-200 text-sm bg-white">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="paused">Paused</option>
-          <option value="archived">Archived</option>
-        </select>
-
-        <select v-model="typeFilter" class="px-4 py-2 rounded-xl border border-slate-200 text-sm bg-white">
-          <option value="all">All Types</option>
-          <option value="savings">Savings</option>
-          <option value="debt_payoff">Debt Payoff</option>
-        </select>
-
-        <button class="px-4 py-2 rounded-xl border border-slate-200 text-sm bg-white" @click="void loadGoals()">Refresh</button>
-      </div>
-
-      <div v-if="loading" class="text-sm text-slate-500">Loading goals...</div>
-      <div v-else-if="goals.length === 0" class="bg-white border border-slate-100 rounded-3xl p-10 text-center text-sm text-slate-400">
-        No goals found.
-      </div>
-
-      <div v-else class="space-y-4 pb-10">
-        <div v-for="goal in goals" :key="goal.id" class="bg-white border border-slate-100 rounded-3xl p-6">
-          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
-            <div>
-              <p class="text-lg font-semibold text-slate-900">{{ goal.name }}</p>
-              <p class="text-xs text-slate-500 uppercase tracking-wider mt-1">{{ goal.type.replace('_', ' ') }} • {{ goal.status }}</p>
-            </div>
-            <div class="text-right">
-              <p class="text-xs text-slate-400">Progress</p>
-              <p class="text-sm font-semibold text-slate-800">{{ progressPercent(goal).toFixed(1) }}%</p>
+                Refresh
+              </button>
             </div>
           </div>
 
-          <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
-            <div class="h-full bg-emerald-500" :style="{ width: `${Math.min(100, progressPercent(goal))}%` }"></div>
+          <div v-if="loading" class="bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center text-sm text-slate-400">
+            Loading goals...
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-            <p>Target: <span class="font-semibold">฿ {{ goal.targetAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</span></p>
-            <p>Current: <span class="font-semibold">฿ {{ goal.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</span></p>
-            <p>Date: <span class="font-semibold">{{ goal.targetDate || '-' }}</span></p>
+          <div v-else-if="goals.length === 0" class="bg-white p-12 rounded-[2.5rem] border border-slate-100 text-center">
+            <p class="text-sm text-slate-400 font-light">No goals found. Click "Add Goal" to get started.</p>
           </div>
 
-          <div class="mt-4 flex flex-wrap gap-2">
-            <button
-              class="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-[10px] font-bold uppercase tracking-widest"
-              @click="startEditGoal(goal)"
-            >Edit</button>
-            <button
-              class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-widest"
-              @click="openGoalDetail(goal.id)"
-            >Detail</button>
-            <button
-              v-if="goal.status !== 'completed'"
-              class="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold uppercase tracking-widest"
-              @click="updateGoalStatus(goal.id, 'completed')"
-            >Mark Complete</button>
-            <button
-              v-if="goal.status !== 'paused'"
-              class="px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-[10px] font-bold uppercase tracking-widest"
-              @click="updateGoalStatus(goal.id, 'paused')"
-            >Pause</button>
-            <button
-              v-if="goal.status !== 'archived'"
-              class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-700 text-[10px] font-bold uppercase tracking-widest"
-              @click="updateGoalStatus(goal.id, 'archived')"
-            >Archive</button>
-            <button
-              class="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-700 text-[10px] font-bold uppercase tracking-widest"
-              @click="requestDeleteGoal(goal.id)"
-            >Delete</button>
-          </div>
-
-          <form
-            v-if="editingGoalID === goal.id"
-            class="mt-5 grid grid-cols-1 md:grid-cols-2 gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-4"
-            @submit.prevent="saveEditedGoal"
+          <div
+            v-for="goal in goals"
+            :key="goal.id"
+            class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-md transition-all"
           >
-            <input
-              v-model.trim="editGoal.name"
-              placeholder="Goal name"
-              class="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-              required
-            />
-            <select
-              v-model="editGoal.status"
-              class="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-            >
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="paused">Paused</option>
-              <option value="archived">Archived</option>
-            </select>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+              <div class="flex items-start gap-4 flex-1 min-w-0">
+                <div
+                  class="mt-1 h-4 w-4 shrink-0 rounded-full ring-2 ring-white shadow"
+                  :style="{ backgroundColor: statusDotColor(goal.status) }"
+                ></div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-3 flex-wrap mb-1">
+                    <p class="text-base font-semibold text-slate-900 tracking-tight">{{ goal.name }}</p>
+                    <span class="px-2 py-0.5 bg-slate-100 rounded-full text-[9px] font-bold text-slate-500 uppercase tracking-wider">
+                      {{ typeLabel(goal.type) }}
+                    </span>
+                    <span
+                      class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider"
+                      :class="statusBadgeClass(goal.status)"
+                    >
+                      {{ statusLabel(goal.status) }}
+                    </span>
+                  </div>
+                  <p class="text-[10px] text-slate-400 uppercase tracking-widest">
+                    Target Date: {{ formatGoalDate(goal.targetDate) }}
+                  </p>
+                  <p v-if="goalTrackingSummary(goal)" class="text-[10px] text-slate-500 mt-1">
+                    {{ goalTrackingSummary(goal) }}
+                  </p>
 
-            <input
-              v-model.number="editGoal.target_amount"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Target amount"
-              class="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-              required
-            />
-            <input
-              v-model.number="editGoal.current_amount"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Current amount"
-              class="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-            />
+                  <div class="mt-5 space-y-2">
+                    <div class="flex justify-between text-[9px] uppercase tracking-widest font-bold">
+                      <span class="text-slate-400">Progress</span>
+                      <span class="text-slate-700">{{ progressPercent(goal).toFixed(1) }}%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                      <div
+                        class="h-full rounded-full transition-all duration-1000"
+                        :class="progressBarClass(goal)"
+                        :style="{ width: Math.min(progressPercent(goal), 100) + '%' }"
+                      ></div>
+                    </div>
+                    <div class="flex justify-between text-[9px] text-slate-400 uppercase tracking-widest">
+                      <span>฿ {{ goal.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }} saved</span>
+                      <span>฿ {{ goal.targetAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }} target</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-            <input
-              v-model="editGoal.target_date"
-              type="date"
-              class="px-3 py-2 rounded-lg border border-slate-200 text-sm"
-            />
-
-            <div class="md:col-span-2 flex justify-end gap-2">
-              <button
-                type="button"
-                class="px-4 py-2 rounded-lg border border-slate-200 text-[10px] font-bold uppercase tracking-widest"
-                @click="cancelEditGoal"
-              >Cancel</button>
-              <button
-                type="submit"
-                class="px-4 py-2 rounded-lg bg-slate-900 text-white text-[10px] font-bold uppercase tracking-widest"
-              >Save</button>
+              <div class="grid grid-cols-2 gap-5 sm:flex sm:flex-col sm:gap-5 sm:text-right shrink-0">
+                <div>
+                  <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Target</p>
+                  <p class="text-lg font-light tracking-tight text-slate-900">
+                    ฿ {{ goal.targetAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Current</p>
+                  <p class="text-xl font-light tracking-tight text-emerald-600">
+                    ฿ {{ goal.currentAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Remaining</p>
+                  <p class="text-base font-medium text-slate-900">
+                    ฿ {{ remainingAmount(goal).toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                </div>
+                <div class="hidden sm:block">
+                  <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Auto Tracking</p>
+                  <p class="text-sm font-medium text-slate-700">
+                    {{ goal.autoTracking ? 'ON' : 'OFF' }}
+                  </p>
+                </div>
+              </div>
             </div>
-          </form>
+
+            <div class="mt-6 pt-5 border-t border-slate-50 flex items-center justify-between">
+              <p class="text-[9px] text-slate-300 uppercase tracking-widest">
+                Goal #{{ goal.id.slice(0, 8) }}
+              </p>
+              <div class="flex gap-4">
+                <button
+                  v-if="canPayFromWallet(goal)"
+                  class="text-[9px] font-bold text-emerald-500 uppercase tracking-widest hover:text-emerald-700 transition-colors"
+                  @click="requestPayFromWallet(goal)"
+                >Pay From Wallet</button>
+                <button
+                  class="text-[9px] font-bold text-indigo-500 uppercase tracking-widest hover:text-indigo-700 transition-colors"
+                  @click="openGoalDetail(goal.id)"
+                >Detail</button>
+                <button
+                  class="text-[9px] font-bold text-slate-500 uppercase tracking-widest hover:text-slate-900 transition-colors"
+                  @click="startEditGoal(goal)"
+                >Edit</button>
+                <button
+                  v-if="goal.status !== 'completed'"
+                  class="text-[9px] font-bold text-emerald-500 uppercase tracking-widest hover:text-emerald-700 transition-colors"
+                  @click="updateGoalStatus(goal.id, 'completed')"
+                >Complete</button>
+                <button
+                  v-if="goal.status !== 'paused'"
+                  class="text-[9px] font-bold text-amber-500 uppercase tracking-widest hover:text-amber-700 transition-colors"
+                  @click="updateGoalStatus(goal.id, 'paused')"
+                >Pause</button>
+                <button
+                  v-if="goal.status !== 'archived'"
+                  class="text-[9px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                  @click="updateGoalStatus(goal.id, 'archived')"
+                >Archive</button>
+                <button
+                  class="text-[9px] font-bold text-rose-400 uppercase tracking-widest hover:text-rose-600 transition-colors"
+                  @click="requestDeleteGoal(goal.id)"
+                >Delete</button>
+              </div>
+            </div>
+
+          </div>
         </div>
+
+        <div
+          v-if="showAddForm"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+          @click.self="showAddForm = false"
+        >
+          <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 animate-in fade-in zoom-in-95 duration-200">
+            <div class="flex items-center justify-between mb-8">
+              <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Create Goal</h4>
+              <button
+                @click="showAddForm = false"
+                type="button"
+                class="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900"
+              >Close</button>
+            </div>
+
+            <form @submit.prevent="createGoal" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Goal Name</label>
+                <input
+                  v-model.trim="newGoal.name"
+                  placeholder="E.g. Emergency Fund"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                  required
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Goal Type</label>
+                <AppDropdown
+                  v-model="newGoal.type"
+                  label="Select goal type"
+                  :items="goalTypeOptions"
+                  unstyled
+                  trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                  menu-class="w-full"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Target Amount (฿)</label>
+                <input
+                  v-model.number="newGoal.target_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                  required
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Start Amount (฿)</label>
+                <input
+                  v-model.number="newGoal.start_amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Start Date</label>
+                <input
+                  v-model="newGoal.start_date"
+                  type="date"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Target Date</label>
+                <input
+                  v-model="newGoal.target_date"
+                  type="date"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                />
+              </div>
+
+              <div class="sm:col-span-2 flex items-center gap-2 px-1">
+                <input id="goal-auto-tracking" v-model="newGoal.auto_tracking" type="checkbox" class="h-4 w-4" />
+                <label for="goal-auto-tracking" class="text-sm text-slate-700">Auto tracking</label>
+              </div>
+
+              <template v-if="newGoal.auto_tracking">
+                <template v-if="newGoal.type === 'debt_payoff'">
+                  <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Deposit Wallet</label>
+                    <AppDropdown
+                      v-model="newGoal.deposit_wallet_id"
+                      label="Select wallet to deposit"
+                      :items="walletSourceItems"
+                      direction="up"
+                      unstyled
+                      trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                      menu-class="w-full"
+                    />
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Loan Account To Close</label>
+                    <AppDropdown
+                      v-model="newGoal.payoff_loan_id"
+                      label="Select loan to close"
+                      :items="loanSourceItems"
+                      direction="up"
+                      unstyled
+                      trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                      menu-class="w-full"
+                    />
+                  </div>
+
+                  <div class="sm:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-sm text-slate-600 space-y-1">
+                    <p>
+                      ฝากเงินเข้าบัญชี: <span class="font-semibold text-slate-900">{{ walletNameByID(newGoal.deposit_wallet_id) }}</span>
+                    </p>
+                    <p>
+                      ต้องการปิดบัญชีเงินกู้: <span class="font-semibold text-slate-900">{{ loanNameByID(newGoal.payoff_loan_id) }}</span>
+                    </p>
+                  </div>
+                </template>
+
+                <template v-else>
+                  <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Tracking Source</label>
+                    <AppDropdown
+                      v-model="newGoal.tracking_source_type"
+                      label="Select tracking source"
+                      :items="trackingSourceTypeOptions"
+                      direction="up"
+                      unstyled
+                      trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                      menu-class="w-full"
+                    />
+                  </div>
+
+                  <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Source Item</label>
+                    <AppDropdown
+                      v-model="newGoal.tracking_source_id"
+                      label="Select source item"
+                      :items="trackingSourceItems"
+                      :disabled="newGoal.tracking_source_type !== 'wallet' && newGoal.tracking_source_type !== 'loan'"
+                      direction="up"
+                      unstyled
+                      trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                      menu-class="w-full"
+                    />
+                  </div>
+                </template>
+              </template>
+
+              <div class="sm:col-span-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  class="px-6 py-3 rounded-2xl border border-slate-200 text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                  @click="showAddForm = false"
+                >Cancel</button>
+                <button
+                  type="submit"
+                  :disabled="saving"
+                  class="px-10 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-slate-800 transition-all disabled:opacity-60"
+                >
+                  {{ saving ? 'Saving...' : 'Save Goal' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div
+          v-if="editingGoalID"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+          @click.self="cancelEditGoal"
+        >
+          <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl p-8 animate-in fade-in zoom-in-95 duration-200">
+            <div class="flex items-center justify-between mb-8">
+              <h4 class="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Edit Goal</h4>
+              <button
+                @click="cancelEditGoal"
+                type="button"
+                class="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-900"
+              >Close</button>
+            </div>
+
+            <form class="grid grid-cols-1 sm:grid-cols-2 gap-6" @submit.prevent="saveEditedGoal">
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Goal Name</label>
+                <input
+                  v-model.trim="editGoal.name"
+                  placeholder="Goal name"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                  required
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Status</label>
+                <AppDropdown
+                  v-model="editGoal.status"
+                  label="Select status"
+                  :items="goalStatusOptions"
+                  unstyled
+                  trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                  menu-class="w-full"
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Target Amount (฿)</label>
+                <input
+                  v-model.number="editGoal.target_amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                  required
+                />
+              </div>
+
+              <div class="space-y-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Current Amount (฿)</label>
+                <input
+                  v-model.number="editGoal.current_amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                />
+              </div>
+
+              <div class="space-y-2 sm:col-span-2">
+                <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Target Date</label>
+                <input
+                  v-model="editGoal.target_date"
+                  type="date"
+                  class="w-full px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-slate-100 transition-all text-sm"
+                />
+              </div>
+
+              <template v-if="editingGoalItem?.type === 'debt_payoff'">
+                <div class="space-y-2">
+                  <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Deposit Wallet</label>
+                  <AppDropdown
+                    v-model="editGoal.deposit_wallet_id"
+                    label="Select wallet to deposit"
+                    :items="walletSourceItems"
+                    direction="up"
+                    unstyled
+                    trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                    menu-class="w-full"
+                  />
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-1">Loan Account To Close</label>
+                  <AppDropdown
+                    v-model="editGoal.payoff_loan_id"
+                    label="Select loan to close"
+                    :items="loanSourceItems"
+                    direction="up"
+                    unstyled
+                    trigger-class="w-full flex items-center justify-between px-6 py-4 bg-slate-50 border border-transparent rounded-2xl outline-none focus-within:bg-white focus-within:border-slate-100 transition-all text-sm"
+                    menu-class="w-full"
+                  />
+                </div>
+
+                <div class="sm:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 px-5 py-4 text-sm text-slate-600 space-y-1">
+                  <p>
+                    ฝากเงินเข้าบัญชี: <span class="font-semibold text-slate-900">{{ walletNameByID(editGoal.deposit_wallet_id) }}</span>
+                  </p>
+                  <p>
+                    ต้องการปิดบัญชีเงินกู้: <span class="font-semibold text-slate-900">{{ loanNameByID(editGoal.payoff_loan_id) }}</span>
+                  </p>
+                </div>
+              </template>
+
+              <div class="sm:col-span-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  @click="cancelEditGoal"
+                  class="px-6 py-3 rounded-2xl border border-slate-200 text-[10px] font-bold uppercase tracking-widest text-slate-500"
+                >Cancel</button>
+                <button
+                  type="submit"
+                  class="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest hover:bg-slate-800 transition-all"
+                >Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
       </div>
 
       <div v-if="toastMessage" class="fixed top-6 right-6 z-[70] rounded-2xl border bg-white px-6 py-4 text-[10px] font-bold uppercase tracking-widest shadow-2xl" :class="toastType === 'error' ? 'border-rose-200 text-rose-600' : 'border-emerald-200 text-emerald-600'">
@@ -371,6 +665,17 @@
       @confirm="confirmDeleteGoal"
       @cancel="deleteConfirmOpen = false"
     />
+
+    <AppConfirmModal
+      :open="payConfirmOpen"
+      title="Confirm Pay From Wallet"
+      :description="payConfirmDescription"
+      confirm-label="Pay Max"
+      cancel-label="Cancel"
+      @update:open="cancelPayFromWallet"
+      @confirm="executePayFromWallet"
+      @cancel="cancelPayFromWallet"
+    />
   </div>
 </template>
 
@@ -383,6 +688,8 @@ import { useAuthApi } from "../../composables/useAuthApi";
 type GoalType = "savings" | "debt_payoff";
 type GoalStatus = "active" | "completed" | "paused" | "archived";
 type GoalTrackingSourceType = "wallet" | "all_wallets" | "loan";
+type DropdownValue = GoalType | GoalStatus | GoalTrackingSourceType | "all" | "";
+type DropdownItem = { label: string; value: DropdownValue | string };
 
 type GoalItem = {
   id: string;
@@ -394,6 +701,9 @@ type GoalItem = {
   targetDate: string;
   status: GoalStatus;
   autoTracking: boolean;
+  trackingSourceType: GoalTrackingSourceType | null;
+  trackingSourceID: string;
+  depositWalletID: string;
 };
 
 type WalletItem = { id: string; name: string; balance: number };
@@ -426,7 +736,17 @@ const navClass = (key: string) =>
       : "text-slate-500 hover:text-slate-900 hover:bg-slate-50",
   ].join(" ");
 
-const { listMyGoals, createMyGoal, updateMyGoal, deleteMyGoal, listMyWallets, listMyLoans } = useAuthApi();
+const {
+  listMyGoals,
+  createMyGoal,
+  updateMyGoal,
+  deleteMyGoal,
+  listMyWallets,
+  listMyLoans,
+  updateMyWallet,
+  updateMyLoan,
+  createMyTransaction,
+} = useAuthApi();
 
 const goals = ref<GoalItem[]>([]);
 const wallets = ref<WalletItem[]>([]);
@@ -469,6 +789,8 @@ const newGoal = reactive({
   auto_tracking: true,
   tracking_source_type: "all_wallets" as GoalTrackingSourceType | "",
   tracking_source_id: "",
+  deposit_wallet_id: "",
+  payoff_loan_id: "",
 });
 
 const editGoal = reactive({
@@ -477,7 +799,41 @@ const editGoal = reactive({
   current_amount: 0,
   target_date: "",
   status: "active" as GoalStatus,
+  deposit_wallet_id: "",
+  payoff_loan_id: "",
 });
+
+const statusFilterOptions: DropdownItem[] = [
+  { label: "All Status", value: "all" },
+  { label: "Active", value: "active" },
+  { label: "Completed", value: "completed" },
+  { label: "Paused", value: "paused" },
+  { label: "Archived", value: "archived" },
+];
+
+const typeFilterOptions: DropdownItem[] = [
+  { label: "All Types", value: "all" },
+  { label: "Savings", value: "savings" },
+  { label: "Debt Payoff", value: "debt_payoff" },
+];
+
+const goalTypeOptions: DropdownItem[] = [
+  { label: "Savings", value: "savings" },
+  { label: "Debt Payoff", value: "debt_payoff" },
+];
+
+const goalStatusOptions: DropdownItem[] = [
+  { label: "Active", value: "active" },
+  { label: "Completed", value: "completed" },
+  { label: "Paused", value: "paused" },
+  { label: "Archived", value: "archived" },
+];
+
+const trackingSourceTypeOptions: DropdownItem[] = [
+  { label: "All Wallets", value: "all_wallets" },
+  { label: "Specific Wallet", value: "wallet" },
+  { label: "Specific Loan", value: "loan" },
+];
 
 const trackingSourceItems = computed(() => {
   if (newGoal.tracking_source_type === "wallet") {
@@ -497,9 +853,176 @@ const trackingSourceItems = computed(() => {
   return [];
 });
 
+const walletSourceItems = computed(() => {
+  return wallets.value.map((wallet) => ({
+    label: `${wallet.name} (฿${wallet.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })})`,
+    value: wallet.id,
+  }));
+});
+
+const loanSourceItems = computed(() => {
+  return loans.value.map((loan) => ({
+    label: `${loan.name} (฿${loan.remainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })})`,
+    value: loan.id,
+  }));
+});
+
 const activeGoals = computed(() => goals.value.filter((goal) => goal.status === "active").length);
 const completedGoals = computed(() => goals.value.filter((goal) => goal.status === "completed").length);
 const totalTargetAmount = computed(() => goals.value.reduce((acc, goal) => acc + goal.targetAmount, 0));
+const totalCurrentAmount = computed(() => goals.value.reduce((acc, goal) => acc + goal.currentAmount, 0));
+const totalProgressPercent = computed(() => {
+  if (totalTargetAmount.value <= 0) {
+    return 0;
+  }
+
+  return (totalCurrentAmount.value / totalTargetAmount.value) * 100;
+});
+const completionRate = computed(() => {
+  if (goals.value.length === 0) {
+    return 0;
+  }
+
+  return (completedGoals.value / goals.value.length) * 100;
+});
+
+const editingGoalItem = computed(() => {
+  if (!editingGoalID.value) {
+    return null;
+  }
+
+  return goals.value.find((goal) => goal.id === editingGoalID.value) || null;
+});
+
+const FIXED_LOAN_REPAYMENT_CATEGORY_ID = "a1b2c3d4-0000-4000-8000-000000000001";
+
+const payingGoal = ref<GoalItem | null>(null);
+const payConfirmOpen = ref(false);
+const paySaving = ref(false);
+
+const payingWallet = computed(() => {
+  if (!payingGoal.value?.depositWalletID) {
+    return null;
+  }
+  return wallets.value.find((wallet) => wallet.id === payingGoal.value?.depositWalletID) || null;
+});
+
+const payingLoan = computed(() => {
+  if (!payingGoal.value?.trackingSourceID) {
+    return null;
+  }
+  return loans.value.find((loan) => loan.id === payingGoal.value?.trackingSourceID) || null;
+});
+
+const maxPayableAmount = computed(() => {
+  if (!payingWallet.value || !payingLoan.value) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(payingWallet.value.balance, payingLoan.value.remainingBalance));
+});
+
+const canPayFromWallet = (goal: GoalItem) => {
+  return goal.type === "debt_payoff" && goal.status === "active" && !!goal.depositWalletID && !!goal.trackingSourceID;
+};
+
+const today = () => new Date().toISOString().split("T")[0];
+
+const normalizeDateForInput = (value: string | null | undefined) => {
+  if (!value) {
+    return "";
+  }
+
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const parsed = new Date(trimmed);
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
+
+  return parsed.toISOString().slice(0, 10);
+};
+
+const payConfirmDescription = computed(() => {
+  if (!payingGoal.value || !payingWallet.value || !payingLoan.value) {
+    return "Proceed with full repayment from selected wallet?";
+  }
+
+  return `Pay full max amount ฿${maxPayableAmount.value.toLocaleString(undefined, { minimumFractionDigits: 2 })} from ${payingWallet.value.name} to ${payingLoan.value.name}?`;
+});
+
+const requestPayFromWallet = (goal: GoalItem) => {
+  payingGoal.value = goal;
+
+  if (!payingWallet.value || !payingLoan.value) {
+    showToast("Goal wallet or loan is missing", "error");
+    payingGoal.value = null;
+    return;
+  }
+
+  if (maxPayableAmount.value <= 0) {
+    showToast("No payable amount available", "error");
+    payingGoal.value = null;
+    return;
+  }
+
+  payConfirmOpen.value = true;
+};
+
+const cancelPayFromWallet = () => {
+  payConfirmOpen.value = false;
+  payingGoal.value = null;
+};
+
+const executePayFromWallet = async () => {
+  if (paySaving.value) {
+    return;
+  }
+
+  if (!payingGoal.value || !payingWallet.value || !payingLoan.value) {
+    showToast("Goal wallet or loan is missing", "error");
+    return;
+  }
+
+  const amount = maxPayableAmount.value;
+  if (amount <= 0) {
+    showToast("No payable amount available", "error");
+    return;
+  }
+
+  paySaving.value = true;
+  try {
+    const nextWalletBalance = payingWallet.value.balance - amount;
+    const nextLoanRemaining = Math.max(0, payingLoan.value.remainingBalance - amount);
+
+    await createMyTransaction({
+      wallet_id: payingWallet.value.id,
+      category_id: FIXED_LOAN_REPAYMENT_CATEGORY_ID,
+      amount,
+      type: "expense",
+      transaction_date: today(),
+      note: `GOAL_PAY_FROM_WALLET|goal_id=${payingGoal.value.id}|wallet_id=${payingWallet.value.id}|loan_id=${payingLoan.value.id}|amount=${amount.toFixed(2)}`,
+    });
+
+    await updateMyWallet(payingWallet.value.id, { balance: nextWalletBalance });
+    await updateMyLoan(payingLoan.value.id, { remaining_balance: nextLoanRemaining });
+
+    showToast("Paid from wallet successfully", "success");
+    cancelPayFromWallet();
+    await Promise.all([loadGoals(), loadTrackingSources()]);
+  } catch {
+    showToast("Failed to pay from wallet", "error");
+  } finally {
+    paySaving.value = false;
+  }
+};
 
 const progressPercent = (goal: GoalItem) => {
   if (goal.targetAmount <= 0) {
@@ -507,6 +1030,79 @@ const progressPercent = (goal: GoalItem) => {
   }
 
   return (goal.currentAmount / goal.targetAmount) * 100;
+};
+
+const remainingAmount = (goal: GoalItem) => Math.max(0, goal.targetAmount - goal.currentAmount);
+
+const formatGoalDate = (date: string) => {
+  if (!date) {
+    return "-";
+  }
+
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) {
+    return "-";
+  }
+
+  return parsed.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+};
+
+const typeLabel = (type: GoalType) => {
+  return type === "debt_payoff" ? "Debt Payoff" : "Savings";
+};
+
+const statusLabel = (status: GoalStatus) => {
+  if (status === "completed") return "Completed";
+  if (status === "paused") return "Paused";
+  if (status === "archived") return "Archived";
+  return "Active";
+};
+
+const statusDotColor = (status: GoalStatus) => {
+  if (status === "completed") return "#10b981";
+  if (status === "paused") return "#f59e0b";
+  if (status === "archived") return "#64748b";
+  return "#6366f1";
+};
+
+const statusBadgeClass = (status: GoalStatus) => {
+  if (status === "completed") return "bg-emerald-50 text-emerald-600";
+  if (status === "paused") return "bg-amber-50 text-amber-600";
+  if (status === "archived") return "bg-slate-100 text-slate-500";
+  return "bg-indigo-50 text-indigo-500";
+};
+
+const progressBarClass = (goal: GoalItem) => {
+  const progress = progressPercent(goal);
+  if (progress >= 100) return "bg-emerald-500";
+  if (progress >= 50) return "bg-indigo-500";
+  return "bg-rose-400";
+};
+
+const walletNameByID = (walletID: string) => {
+  if (!walletID) return "-";
+  return wallets.value.find((wallet) => wallet.id === walletID)?.name || "-";
+};
+
+const loanNameByID = (loanID: string) => {
+  if (!loanID) return "-";
+  return loans.value.find((loan) => loan.id === loanID)?.name || "-";
+};
+
+const goalTrackingSummary = (goal: GoalItem) => {
+  if (!goal.autoTracking || !goal.trackingSourceType) {
+    return "";
+  }
+
+  if (goal.trackingSourceType === "loan") {
+    return `ฝากเงินเข้าบัญชี: ${walletNameByID(goal.depositWalletID)} | ต้องการปิดบัญชีเงินกู้: ${loanNameByID(goal.trackingSourceID)}`;
+  }
+
+  if (goal.trackingSourceType === "wallet") {
+    return `ฝากเงินเข้าบัญชี: ${walletNameByID(goal.trackingSourceID)}`;
+  }
+
+  return "ติดตามจากทุกบัญชีเงินฝาก";
 };
 
 const loadGoals = async () => {
@@ -526,9 +1122,12 @@ const loadGoals = async () => {
       targetAmount: Number(item.target_amount || 0),
       startAmount: Number(item.start_amount || 0),
       currentAmount: Number(item.current_amount || 0),
-      targetDate: item.target_date || "",
+      targetDate: normalizeDateForInput(item.target_date),
       status: item.status,
       autoTracking: Boolean(item.auto_tracking),
+      trackingSourceType: item.tracking_source_type,
+      trackingSourceID: item.tracking_source_id || "",
+      depositWalletID: item.deposit_wallet_id || "",
     }));
   } catch {
     showToast("Failed to load goals", "error");
@@ -572,6 +1171,8 @@ const resetGoalForm = () => {
   newGoal.auto_tracking = true;
   newGoal.tracking_source_type = "all_wallets";
   newGoal.tracking_source_id = "";
+  newGoal.deposit_wallet_id = "";
+  newGoal.payoff_loan_id = "";
 };
 
 const createGoal = async () => {
@@ -587,10 +1188,21 @@ const createGoal = async () => {
 
   if (
     newGoal.auto_tracking &&
+    newGoal.type !== "debt_payoff" &&
     (newGoal.tracking_source_type === "wallet" || newGoal.tracking_source_type === "loan") &&
     !newGoal.tracking_source_id
   ) {
     showToast("Please select a tracking source", "error");
+    return;
+  }
+
+  if (newGoal.auto_tracking && newGoal.type === "debt_payoff" && !newGoal.payoff_loan_id) {
+    showToast("Please select the loan account to close", "error");
+    return;
+  }
+
+  if (newGoal.auto_tracking && newGoal.type === "debt_payoff" && !newGoal.deposit_wallet_id) {
+    showToast("Please select deposit wallet", "error");
     return;
   }
 
@@ -606,10 +1218,20 @@ const createGoal = async () => {
       target_date: newGoal.target_date || undefined,
       status: newGoal.status,
       auto_tracking: newGoal.auto_tracking,
-      tracking_source_type: newGoal.auto_tracking && newGoal.tracking_source_type
-        ? newGoal.tracking_source_type
-        : undefined,
-      tracking_source_id: newGoal.auto_tracking ? newGoal.tracking_source_id || undefined : undefined,
+      tracking_source_type:
+        newGoal.auto_tracking && newGoal.type === "debt_payoff"
+          ? "loan"
+          : (newGoal.auto_tracking && newGoal.tracking_source_type
+            ? newGoal.tracking_source_type
+            : undefined),
+      tracking_source_id:
+        newGoal.auto_tracking && newGoal.type === "debt_payoff"
+          ? (newGoal.payoff_loan_id || undefined)
+          : (newGoal.auto_tracking ? newGoal.tracking_source_id || undefined : undefined),
+      deposit_wallet_id:
+        newGoal.auto_tracking && newGoal.type === "debt_payoff"
+          ? (newGoal.deposit_wallet_id || undefined)
+          : undefined,
     });
 
     showToast("Goal created", "success");
@@ -640,8 +1262,10 @@ const startEditGoal = (goal: GoalItem) => {
   editGoal.name = goal.name;
   editGoal.target_amount = goal.targetAmount;
   editGoal.current_amount = goal.currentAmount;
-  editGoal.target_date = goal.targetDate;
+  editGoal.target_date = normalizeDateForInput(goal.targetDate);
   editGoal.status = goal.status;
+  editGoal.deposit_wallet_id = goal.depositWalletID;
+  editGoal.payoff_loan_id = goal.trackingSourceType === "loan" ? goal.trackingSourceID : "";
 };
 
 const cancelEditGoal = () => {
@@ -664,12 +1288,29 @@ const saveEditedGoal = async () => {
   }
 
   try {
+    const currentGoal = goals.value.find((goal) => goal.id === editingGoalID.value);
+    const isDebtPayoff = currentGoal?.type === "debt_payoff";
+
+    if (isDebtPayoff) {
+      if (!editGoal.deposit_wallet_id) {
+        showToast("Please select deposit wallet", "error");
+        return;
+      }
+      if (!editGoal.payoff_loan_id) {
+        showToast("Please select loan account to close", "error");
+        return;
+      }
+    }
+
     await updateMyGoal(editingGoalID.value, {
       name: editGoal.name.trim(),
       target_amount: Number(editGoal.target_amount || 0),
       current_amount: Number(editGoal.current_amount || 0),
       target_date: editGoal.target_date || undefined,
       status: editGoal.status,
+      tracking_source_type: isDebtPayoff ? "loan" : undefined,
+      tracking_source_id: isDebtPayoff ? (editGoal.payoff_loan_id || undefined) : undefined,
+      deposit_wallet_id: isDebtPayoff ? (editGoal.deposit_wallet_id || undefined) : undefined,
     });
 
     goals.value = goals.value.map((goal) =>
@@ -681,6 +1322,9 @@ const saveEditedGoal = async () => {
             currentAmount: Number(editGoal.current_amount || 0),
             targetDate: editGoal.target_date || "",
             status: editGoal.status,
+            trackingSourceType: isDebtPayoff ? "loan" : goal.trackingSourceType,
+            trackingSourceID: isDebtPayoff ? editGoal.payoff_loan_id : goal.trackingSourceID,
+            depositWalletID: isDebtPayoff ? editGoal.deposit_wallet_id : goal.depositWalletID,
           }
         : goal,
     );
@@ -738,6 +1382,21 @@ watch(
   () => newGoal.tracking_source_type,
   () => {
     newGoal.tracking_source_id = "";
+  },
+);
+
+watch(
+  () => newGoal.type,
+  (type) => {
+    if (type === "debt_payoff") {
+      newGoal.tracking_source_type = "loan";
+      newGoal.tracking_source_id = "";
+      return;
+    }
+
+    newGoal.tracking_source_type = "all_wallets";
+    newGoal.tracking_source_id = "";
+    newGoal.payoff_loan_id = "";
   },
 );
 

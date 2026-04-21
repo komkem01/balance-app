@@ -64,6 +64,7 @@ const props = withDefaults(
     closeOnSelect?: boolean;
     unstyled?: boolean;
     disabled?: boolean;
+    direction?: "down" | "up";
   }>(),
   {
     label: "Click",
@@ -74,6 +75,7 @@ const props = withDefaults(
     closeOnSelect: true,
     unstyled: false,
     disabled: false,
+    direction: "down",
   },
 );
 
@@ -104,8 +106,10 @@ const computedTriggerClass = computed(() => {
 
 const computedMenuClass = computed(() => {
   const alignClass = props.align === "right" ? "right-0" : "left-0";
+  const positionClass =
+    props.direction === "up" ? "bottom-full mb-2" : "top-full mt-2";
   const base =
-    `absolute ${alignClass} z-40 mt-2 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-xl`;
+    `absolute ${alignClass} ${positionClass} z-40 w-52 rounded-xl border border-slate-200 bg-white p-2 shadow-xl`;
   return props.menuClass ? `${base} ${props.menuClass}` : base;
 });
 

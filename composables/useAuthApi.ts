@@ -285,6 +285,7 @@ type GoalItemResponse = {
   auto_tracking: boolean;
   tracking_source_type: GoalTrackingSourceType | null;
   tracking_source_id: string | null;
+  deposit_wallet_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -322,6 +323,7 @@ type CreateGoalRequest = {
   auto_tracking?: boolean;
   tracking_source_type?: GoalTrackingSourceType;
   tracking_source_id?: string;
+  deposit_wallet_id?: string;
 };
 
 type UpdateGoalRequest = {
@@ -335,6 +337,7 @@ type UpdateGoalRequest = {
   auto_tracking?: boolean;
   tracking_source_type?: GoalTrackingSourceType;
   tracking_source_id?: string;
+  deposit_wallet_id?: string;
 };
 
 type BudgetItemResponse = {

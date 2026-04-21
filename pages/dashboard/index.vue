@@ -273,10 +273,11 @@
         <!-- Dashboard View -->
         <div
           v-if="currentPath === 'dashboard'"
-          class="grid grid-cols-1 xl:grid-cols-3 items-start gap-10"
+          class="space-y-8"
         >
-          <!-- Left Column: Chart & History -->
-          <div class="xl:col-span-2 min-w-0 space-y-10">
+          <div class="grid grid-cols-1 xl:grid-cols-3 items-start gap-10">
+            <!-- Left Column: Chart & History -->
+            <div class="xl:col-span-2 min-w-0 space-y-10">
             <!-- Monthly Performance Chart -->
             <div
               class="relative bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"
@@ -395,13 +396,13 @@
                 </div>
               </div>
             </div>
-          </div>
+            </div>
 
-          <!-- Right Column: Wallets & Budgets -->
-          <div class="min-w-0 space-y-10">
+            <!-- Right Column: Wallets & Budgets -->
+            <div class="min-w-0">
             <!-- Asset Snapshot -->
             <div
-              class="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden"
+              class="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden min-h-[780px] flex flex-col"
             >
               <div
                 class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl"
@@ -411,7 +412,7 @@
               >
                 Active Wallets
               </h4>
-              <div class="space-y-6">
+              <div class="space-y-6 flex-1">
                 <div
                   v-for="wallet in wallets"
                   :key="wallet.id"
@@ -439,43 +440,68 @@
               </div>
               <button
                 @click="goTo('wallets')"
-                class="w-full mt-8 py-3 border border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all"
+                class="w-full mt-8 py-3 border border-white/10 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all mt-auto"
               >
                 Manage Assets
               </button>
             </div>
+          </div>
 
-            <!-- Budget Progress -->
+          </div>
+
+          <div class="grid grid-cols-1 2xl:grid-cols-2 gap-8">
             <div
               class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"
             >
-              <h4
-                class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6"
-              >
-                Goals Snapshot
-              </h4>
-              <div class="space-y-3 text-sm">
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-500">Active</span>
-                  <span class="font-semibold text-slate-900">{{ goalActiveCount }}</span>
+              <div class="flex items-start justify-between mb-6">
+                <div>
+                  <h4
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2"
+                  >
+                    Goals Snapshot
+                  </h4>
+                  <p class="text-2xl font-light tracking-tight text-slate-900">
+                    {{ goalProgressPercent.toFixed(1) }}%
+                  </p>
+                  <p class="text-[10px] text-slate-400 uppercase tracking-widest">Overall Progress</p>
                 </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-500">Completed</span>
-                  <span class="font-semibold text-slate-900">{{ goalCompletedCount }}</span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-500">Target Total</span>
-                  <span class="font-semibold text-slate-900">
-                    ฿ {{ goalTargetTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
-                  </span>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="text-slate-500">Current Total</span>
-                  <span class="font-semibold text-emerald-600">
-                    ฿ {{ goalCurrentTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
-                  </span>
+                <span class="rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-[9px] font-bold uppercase tracking-widest">
+                  {{ goalCompletedCount }} completed
+                </span>
+              </div>
+
+              <div class="mb-6">
+                <div class="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500 transition-all duration-700"
+                    :style="{ width: `${goalProgressPercentCapped}%` }"
+                  ></div>
                 </div>
               </div>
+
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                  <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Active</p>
+                  <p class="font-semibold text-slate-900">{{ goalActiveCount }}</p>
+                </div>
+                <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                  <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Completed</p>
+                  <p class="font-semibold text-slate-900">{{ goalCompletedCount }}</p>
+                </div>
+                <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                  <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Target Total</p>
+                  <p class="font-semibold text-slate-900">
+                    ฿ {{ goalTargetTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-emerald-50 px-4 py-3">
+                  <p class="text-[9px] text-emerald-500 uppercase tracking-widest mb-1">Current Total</p>
+                  <p class="font-semibold text-emerald-700">
+                    ฿ {{ goalCurrentTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                </div>
+              </div>
+
               <button
                 @click="goTo('goals')"
                 class="w-full mt-6 py-3 border border-slate-200 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
@@ -487,39 +513,130 @@
             <div
               class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm"
             >
-              <h4
-                class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8"
+              <div class="flex items-start justify-between mb-6">
+                <div>
+                  <h4
+                    class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2"
+                  >
+                    Loans Snapshot
+                  </h4>
+                  <p class="text-2xl font-light tracking-tight text-rose-600">
+                    ฿ {{ loanRemainingTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                  <p class="text-[10px] text-slate-400 uppercase tracking-widest">Remaining Balance</p>
+                </div>
+                <span class="rounded-full bg-slate-100 text-slate-700 px-3 py-1 text-[9px] font-bold uppercase tracking-widest">
+                  {{ loanCount }} accounts
+                </span>
+              </div>
+
+              <div class="mb-6">
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-[10px] text-slate-400 uppercase tracking-widest">Paid off ratio</p>
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-emerald-600">{{ loanPaidPercent.toFixed(1) }}%</p>
+                </div>
+                <div class="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                  <div
+                    class="h-full rounded-full bg-gradient-to-r from-rose-500 to-amber-500 transition-all duration-700"
+                    :style="{ width: `${loanPaidPercentCapped}%` }"
+                  ></div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                <div class="rounded-2xl bg-slate-50 px-4 py-3">
+                  <p class="text-[9px] text-slate-400 uppercase tracking-widest mb-1">Total Loan</p>
+                  <p class="font-semibold text-slate-900">
+                    ฿ {{ loanTotalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-rose-50 px-4 py-3">
+                  <p class="text-[9px] text-rose-500 uppercase tracking-widest mb-1">Remaining</p>
+                  <p class="font-semibold text-rose-700">
+                    ฿ {{ loanRemainingTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                </div>
+                <div class="rounded-2xl bg-emerald-50 px-4 py-3 col-span-2">
+                  <p class="text-[9px] text-emerald-500 uppercase tracking-widest mb-1">Paid Off</p>
+                  <p class="font-semibold text-emerald-700">
+                    ฿ {{ loanPaidTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                @click="goTo('loans')"
+                class="w-full mt-6 py-3 border border-slate-200 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
               >
-                Budget Status
-              </h4>
-              <div class="space-y-6">
-                <div
-                  v-for="budget in activeBudgets"
-                  :key="budget.id"
-                  class="space-y-3"
+                Open Loans
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+            <div class="flex items-start justify-between mb-6">
+              <div>
+                <h4
+                  class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2"
                 >
+                  Budget Status
+                </h4>
+                <p class="text-2xl font-light tracking-tight text-slate-900">
+                  {{ budgetUtilizationPercent.toFixed(1) }}%
+                </p>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest">Overall Usage</p>
+              </div>
+              <span
+                class="rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-widest"
+                :class="budgetHighRiskCount > 0 ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'"
+              >
+                {{ budgetHighRiskCount }} high risk
+              </span>
+            </div>
+
+            <div class="mb-6">
+              <div class="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  class="h-full rounded-full bg-gradient-to-r from-sky-500 to-indigo-500 transition-all duration-700"
+                  :style="{ width: `${budgetUtilizationPercentCapped}%` }"
+                ></div>
+              </div>
+              <div class="mt-2 flex items-center justify-between text-[10px] uppercase tracking-widest">
+                <p class="text-slate-400">Spent ฿ {{ budgetSpentTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</p>
+                <p class="text-slate-500">Limit ฿ {{ budgetAmountTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-4">
+              <div
+                v-for="budget in activeBudgets"
+                :key="budget.id"
+                class="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[10px] font-bold uppercase tracking-widest text-slate-900">{{ budget.category }}</span>
+                  <span class="text-[10px] font-bold uppercase tracking-widest" :class="budget.percent >= 90 ? 'text-rose-600' : budget.percent >= 70 ? 'text-amber-600' : 'text-emerald-600'">{{ budget.percent }}%</span>
+                </div>
+                <div class="w-full bg-white h-2 rounded-full overflow-hidden border border-slate-100">
                   <div
-                    class="flex justify-between text-[10px] uppercase tracking-widest"
-                  >
-                    <span class="font-bold text-slate-900">{{
-                      budget.category
-                    }}</span>
-                    <span class="text-slate-400">{{ budget.percent }}%</span>
-                  </div>
-                  <div
-                    class="w-full bg-slate-50 h-1.5 rounded-full overflow-hidden"
-                  >
-                    <div
-                      :class="[
-                        'h-full transition-all duration-1000',
-                        budget.percent > 90 ? 'bg-rose-500' : 'bg-slate-900',
-                      ]"
-                      :style="{ width: budget.percent + '%' }"
-                    ></div>
-                  </div>
+                    class="h-full transition-all duration-700"
+                    :class="budget.percent >= 90 ? 'bg-rose-500' : budget.percent >= 70 ? 'bg-amber-500' : 'bg-emerald-500'"
+                    :style="{ width: budget.percent + '%' }"
+                  ></div>
+                </div>
+                <div class="mt-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-slate-400">
+                  <span>Spent ฿ {{ budget.spent.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</span>
+                  <span>Limit ฿ {{ budget.amount.toLocaleString(undefined, { minimumFractionDigits: 2 }) }}</span>
                 </div>
               </div>
             </div>
+
+            <button
+              @click="goTo('budgets')"
+              class="w-full mt-6 py-3 border border-slate-200 rounded-xl text-[9px] font-bold uppercase tracking-widest hover:bg-slate-50 transition-all"
+            >
+              Open Budgets
+            </button>
           </div>
         </div>
 
@@ -620,6 +737,12 @@ type GoalSummaryItem = {
   currentAmount: number;
 };
 
+type LoanSummaryItem = {
+  id: string;
+  totalAmount: number;
+  remainingBalance: number;
+};
+
 type BudgetItem = {
   id: string;
   category_id: string;
@@ -703,6 +826,7 @@ const {
   listMyCategories,
   listMyBudgets,
   listMyGoals,
+  listMyLoans,
   listMyTransactions,
   listMyTransactionMonthlySummary,
 } = useAuthApi();
@@ -712,6 +836,7 @@ const wallets = ref<WalletItem[]>([]);
 const categories = ref<CategoryItem[]>([]);
 const budgets = ref<BudgetItem[]>([]);
 const goals = ref<GoalSummaryItem[]>([]);
+const loans = ref<LoanSummaryItem[]>([]);
 const allTransactions = ref<TransactionItem[]>([]);
 const monthlySummaryItems = ref<MonthlySummaryAggregateItem[]>([]);
 const pageLoading = ref(false);
@@ -1019,15 +1144,49 @@ const activeBudgets = computed(() => {
     return {
       id: budget.id,
       category: categoryMap.get(budget.category_id) || "Unknown",
+      amount: budget.amount,
+      spent: budget.spent,
       percent,
     };
-  });
+  }).sort((a, b) => b.percent - a.percent).slice(0, 5);
 });
+
+const budgetAmountTotal = computed(() => budgets.value.reduce((acc, budget) => acc + budget.amount, 0));
+const budgetSpentTotal = computed(() => budgets.value.reduce((acc, budget) => acc + budget.spent, 0));
+const budgetUtilizationPercent = computed(() => {
+  if (budgetAmountTotal.value <= 0) {
+    return 0;
+  }
+
+  return (budgetSpentTotal.value / budgetAmountTotal.value) * 100;
+});
+const budgetUtilizationPercentCapped = computed(() => Math.max(0, Math.min(budgetUtilizationPercent.value, 100)));
+const budgetHighRiskCount = computed(() => activeBudgets.value.filter((budget) => budget.percent >= 90).length);
 
 const goalActiveCount = computed(() => goals.value.filter((goal) => goal.status === "active").length);
 const goalCompletedCount = computed(() => goals.value.filter((goal) => goal.status === "completed").length);
 const goalTargetTotal = computed(() => goals.value.reduce((acc, goal) => acc + goal.targetAmount, 0));
 const goalCurrentTotal = computed(() => goals.value.reduce((acc, goal) => acc + goal.currentAmount, 0));
+const goalProgressPercent = computed(() => {
+  if (goalTargetTotal.value <= 0) {
+    return 0;
+  }
+
+  return (goalCurrentTotal.value / goalTargetTotal.value) * 100;
+});
+const goalProgressPercentCapped = computed(() => Math.max(0, Math.min(goalProgressPercent.value, 100)));
+
+const loanCount = computed(() => loans.value.length);
+const loanTotalAmount = computed(() => loans.value.reduce((acc, loan) => acc + loan.totalAmount, 0));
+const loanRemainingTotal = computed(() => loans.value.reduce((acc, loan) => acc + loan.remainingBalance, 0));
+const loanPaidTotal = computed(() => Math.max(0, loanTotalAmount.value - loanRemainingTotal.value));
+const loanPaidPercent = computed(() => {
+  if (loanTotalAmount.value <= 0) {
+    return 0;
+  }
+  return (loanPaidTotal.value / loanTotalAmount.value) * 100;
+});
+const loanPaidPercentCapped = computed(() => Math.max(0, Math.min(loanPaidPercent.value, 100)));
 
 const loadWallets = async () => {
   const res = await listMyWallets({ page: 1, size: 200, isActive: true });
@@ -1064,6 +1223,15 @@ const loadGoals = async () => {
     status: item.status,
     targetAmount: Number(item.target_amount || 0),
     currentAmount: Number(item.current_amount || 0),
+  }));
+};
+
+const loadLoans = async () => {
+  const res = await listMyLoans({ page: 1, size: 300 });
+  loans.value = (res.items || []).map((item) => ({
+    id: item.id,
+    totalAmount: Number(item.total_amount || 0),
+    remainingBalance: Number(item.remaining_balance || 0),
   }));
 };
 
@@ -1142,7 +1310,7 @@ const setChartRange = (range: ChartRange) => {
 const loadInitialData = async () => {
   pageLoading.value = true;
   try {
-    await Promise.all([loadWallets(), loadCategories(), loadBudgets(), loadGoals()]);
+    await Promise.all([loadWallets(), loadCategories(), loadBudgets(), loadGoals(), loadLoans()]);
     await Promise.all([loadTransactions(), loadMonthlySummary(), refreshTotalNetWorth()]);
   } catch (error) {
     console.error("dashboard-load-failed", normalizeErrorMessage(error));
