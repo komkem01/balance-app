@@ -821,7 +821,18 @@ const FIXED_LOAN_DRAW_CATEGORY_ID = "a1b2c3d4-0000-4000-8000-000000000002";
 // ─── Loans Data ──────────────────────────────────────────────────────────────
 const loans = ref<LoanItem[]>([]);
 
-const mapLoan = (item: { id: string; name: string; lender: string; total_amount: number; remaining_balance: number; monthly_payment: number; interest_rate: number; start_date: string | null; end_date: string | null; updated_at: string }): LoanItem => ({
+const normalizeDateForInput = (value: string | null | undefined): string => {
+  if (!value) return "";
+  const text = String(value).trim();
+  if (!text) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  const parsed = new Date(text);
+  if (isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+};
+
+const mapLoan = (item: { id: string; name: string; lender: string; total_amount: number; remaining_balance: number; monthly_payment: number; interest_rate: number; color_code?: string | null; start_date: string | null; end_date: string | null; updated_at: string }): LoanItem => ({
   id: item.id,
   name: item.name,
   lender: item.lender || "",
@@ -829,9 +840,9 @@ const mapLoan = (item: { id: string; name: string; lender: string; total_amount:
   remainingBalance: Number(item.remaining_balance) || 0,
   monthlyPayment: Number(item.monthly_payment) || 0,
   interestRate: Number(item.interest_rate) || 0,
-  startDate: item.start_date || "",
-  endDate: item.end_date || "",
-  colorCode: "#6366f1",
+  startDate: normalizeDateForInput(item.start_date),
+  endDate: normalizeDateForInput(item.end_date),
+  colorCode: item.color_code || "#6366f1",
   updatedAt: item.updated_at || "",
 });
 
@@ -905,6 +916,7 @@ const addLoan = async () => {
       remaining_balance: Number(newLoan.remainingBalance) || 0,
       monthly_payment: Number(newLoan.monthlyPayment) || 0,
       interest_rate: Number(newLoan.interestRate) || 0,
+      color_code: newLoan.colorCode || undefined,
       start_date: newLoan.startDate || undefined,
       end_date: newLoan.endDate || undefined,
     });
@@ -948,8 +960,8 @@ const startEdit = (loan: LoanItem) => {
   editForm.remainingBalance = loan.remainingBalance;
   editForm.monthlyPayment = loan.monthlyPayment;
   editForm.interestRate = loan.interestRate;
-  editForm.startDate = loan.startDate;
-  editForm.endDate = loan.endDate;
+  editForm.startDate = normalizeDateForInput(loan.startDate);
+  editForm.endDate = normalizeDateForInput(loan.endDate);
   editForm.colorCode = loan.colorCode;
 };
 
@@ -963,6 +975,7 @@ const saveEdit = async () => {
       remaining_balance: Number(editForm.remainingBalance) || 0,
       monthly_payment: Number(editForm.monthlyPayment) || 0,
       interest_rate: Number(editForm.interestRate) || 0,
+      color_code: editForm.colorCode || undefined,
       start_date: editForm.startDate || undefined,
       end_date: editForm.endDate || undefined,
     });

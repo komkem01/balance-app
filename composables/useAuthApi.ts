@@ -234,6 +234,7 @@ type LoanItemResponse = {
   remaining_balance: number;
   monthly_payment: number;
   interest_rate: number;
+  color_code: string;
   start_date: string | null;
   end_date: string | null;
   created_at: string;
@@ -252,6 +253,7 @@ type CreateLoanRequest = {
   remaining_balance: number;
   monthly_payment?: number;
   interest_rate?: number;
+  color_code?: string;
   start_date?: string;
   end_date?: string;
 };
@@ -263,6 +265,7 @@ type UpdateLoanRequest = {
   remaining_balance?: number;
   monthly_payment?: number;
   interest_rate?: number;
+  color_code?: string;
   start_date?: string;
   end_date?: string;
 };
